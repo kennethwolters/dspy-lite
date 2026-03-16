@@ -16,4 +16,4 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v4
       - run: uv python install ${{ matrix.python-version }}
-      - run: uv run --extra dev --python ${{ matrix.python-version }} pytest tests/ -x --timeout=30 -q
+      - run: uv run --extra dev --extra embeddings --python ${{ matrix.python-version }} pytest tests/ -x --timeout=30 -q
