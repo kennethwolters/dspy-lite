@@ -77,10 +77,10 @@ class Embeddings:
 
         return index
 
-    def _faiss_search(self, query_embeddings: np.ndarray, num_candidates: int):
+    def _faiss_search(self, query_embeddings: "np.ndarray", num_candidates: int):
         return self.index.search(query_embeddings, num_candidates)[1]
 
-    def _rerank_and_predict(self, q_embeds: np.ndarray, candidate_indices: np.ndarray):
+    def _rerank_and_predict(self, q_embeds: "np.ndarray", candidate_indices: "np.ndarray"):
         candidate_embeddings = self.corpus_embeddings[candidate_indices]
         scores = np.einsum("qd,qkd->qk", q_embeds, candidate_embeddings)
 
@@ -89,7 +89,7 @@ class Embeddings:
 
         return [([self.corpus[idx] for idx in indices], [idx for idx in indices]) for indices in top_indices]  # noqa: C416
 
-    def _normalize(self, embeddings: np.ndarray):
+    def _normalize(self, embeddings: "np.ndarray"):
         norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
         return embeddings / np.maximum(norms, 1e-10)
 

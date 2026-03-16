@@ -116,7 +116,7 @@ class Embedder:
         else:
             return np.array(embeddings, dtype=np.float32)
 
-    def __call__(self, inputs: str | list[str], batch_size: int | None = None, caching: bool | None = None, **kwargs: dict[str, Any]) -> np.ndarray:
+    def __call__(self, inputs: str | list[str], batch_size: int | None = None, caching: bool | None = None, **kwargs: dict[str, Any]) -> "np.ndarray":
         """Compute embeddings for the given inputs.
 
         Args:
