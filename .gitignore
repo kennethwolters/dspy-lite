@@ -1,0 +1,44 @@
+# Build
+dist/
+build/
+*.egg-info/
+
+# Environment
+.venv/
+.env
+.env.*
+
+# Claude
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+
+# Cache
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+__pycache__/
+*.pyc
+*.py[cod]
+*$py.class
+
+# OS
+.DS_Store
+
+# Editor
+.vscode
+.idea
+*.swp
+
+# Jupyter
+.ipynb_checkpoints
+
+# Logs
+*.log
+*.db
+
+# Other
+*.pkl
+*.pt
+*.tar.gz
+local/

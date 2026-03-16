@@ -1,0 +1,173 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dspy-lite"
+version = "3.1.3.post1"
+description = "DSPy with litellm replaced by litelm and numpy made optional"
+readme = "README.md"
+authors = [{ name = "Omar Khattab", email = "okhattab@stanford.edu" }]
+license = {file = "LICENSE"}
+requires-python = ">=3.10"
+keywords = ["llm", "dspy", "ai", "prompt-optimization", "language-models"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "openai>=1.0.0",
+    "regex>=2023.10.3",
+    "orjson>=3.9.0",
+    "tqdm>=4.66.1",
+    "requests>=2.31.0",
+    "pydantic>=2.0",
+    "litelm>=0.3.0",
+    "diskcache>=5.6.0",
+    "json-repair>=0.54.2",
+    "anyio",
+    "asyncer==0.0.8",
+    "cachetools>=5.5.0",
+    "xxhash>=3.5.0",
+    "cloudpickle>=3.0.0",
+    "gepa[dspy]==0.0.27",
+    "typeguard>=4.4.3",
+]
+
+[project.optional-dependencies]
+anthropic = ["litelm[anthropic]"]
+weaviate = ["weaviate-client~=4.5.4"]
+mcp = ["mcp; python_version >= '3.10'"]
+langchain = ["langchain_core"]
+optuna = ["optuna>=3.4.0"]
+bedrock = ["litelm[bedrock]"]
+cloudflare = ["litelm[cloudflare]"]
+embeddings = ["numpy>=1.26.0"]
+all = ["dspy-lite[anthropic,bedrock,cloudflare,embeddings]"]
+dev = [
+    "pytest>=6.2.5",
+    "pytest-mock>=3.12.0",
+    "pytest-asyncio>=0.26.0",
+    "ruff>=0.3.0",
+    "pre-commit>=3.7.0",
+    "pillow>=10.1.0",
+    "datamodel_code_generator>=0.26.3",
+    "build>=1.0.3",
+    "litelm>=0.3.0",
+]
+test_extras = [
+    "mcp; python_version >= '3.10'",
+    "datasets>=2.14.6",
+    "pandas>=2.1.1",
+    "optuna>=3.4.0",
+    "langchain_core",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["dspy"]
+
+[tool.hatch.build.targets.sdist]
+include = ["dspy/", "README.md", "LICENSE", "pyproject.toml"]
+
+[project.urls]
+Homepage = "https://github.com/kennethwolters/dspy-lite"
+Repository = "https://github.com/kennethwolters/dspy-lite"
+Issues = "https://github.com/kennethwolters/dspy-lite/issues"
+Documentation = "https://dspy.ai"
+
+[tool.pytest.ini_options]
+filterwarnings = []
+
+[tool.ruff]
+include = ["dspy/**/*.py", "tests/**/*.py"]
+exclude = [
+  "dspy/__metadata__.py",
+  "tests/reliability/*.py",
+]
+
+
+line-length = 120
+indent-width = 4
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "C",   # flake8-comprehensions
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "RUF", # ruff-specific rules
+    "Q",   # flake8-quotes
+]
+
+ignore = [
+    "B007",  # Unused loop variable (inherited DSPy patterns)
+    "B019",  # lru_cache on methods (inherited)
+    "B027",  # Allow non-abstract empty methods in abstract base classes
+    "B039",  # mutable argument default (inherited)
+    "B904",  # Allow raise custom exceptions in except blocks
+    "C408",  # Unnecessary dict call (inherited)
+    "C416",  # Unnecessary comprehension (inherited)
+    "C901",  # Ignore complexity checking
+    "E402",  # Module level import not at top (inherited)
+    "E501",  # Ignore line length errors (handled by formatter)
+    "E721",  # Allow == for type comparisons (inherited)
+    "E712",  # Comparison to True/False (inherited)
+    "F403",  # Allow wildcard imports
+    "FBT003",# Allow boolean positional values in function calls
+    "N806",  # Uppercase variable in function (inherited DSPy conventions)
+    "RUF005", # Allow using + operator to concatenate collections
+    "RUF022", # Allow unsorted __all__ value
+    "UP031", # Allow percent format
+    "UP035", # Allow python typing modules
+    "W291",  # Trailing whitespace (inherited docstrings)
+    "W293",  # Whitespace in blank line (inherited docstrings)
+    "RUF012", # Mutable class defaults (inherited)
+    "RUF015", # Unnecessary iterable allocation (inherited)
+    "RUF017", # Quadratic list summation (inherited)
+    "RUF100", # Unused noqa (inherited)
+    "UP007", # Use X | Y for unions (inherited)
+    "UP045", # Use X | Y for Optional (inherited)
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+docstring-code-format = false
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+known-first-party = ["dspy"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",    # Allow assert statements in tests
+    "TID252",  # Allow relative imports in tests
+    "ARG001",  # Allow unused arguments in tests (like pytest fixtures)
+]
+"__init__.py" = ["F401"]  # Init files can be empty
+"dspy/__init__.py" = [
+    "I001",  # Allow unsorted or unformatted imports (isort)
+    "E402",  # Allow imports not at the top of the file (needed for certain __init__ patterns)
+    "F405",  # Allow undefined names from wildcard imports (common in __init__ files)
+]
