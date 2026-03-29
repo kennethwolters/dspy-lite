@@ -49,6 +49,22 @@ class BaseLM:
         self.kwargs = dict(temperature=temperature, max_tokens=max_tokens, **kwargs)
         self.history = []
 
+    @property
+    def supports_function_calling(self) -> bool:
+        return False
+
+    @property
+    def supports_reasoning(self) -> bool:
+        return False
+
+    @property
+    def supports_response_schema(self) -> bool:
+        return False
+
+    @property
+    def supported_params(self) -> set[str]:
+        return set()
+
     def _process_lm_response(self, response, prompt, messages, **kwargs):
         merged_kwargs = {**self.kwargs, **kwargs}
 

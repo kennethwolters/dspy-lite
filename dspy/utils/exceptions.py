@@ -2,6 +2,16 @@
 from dspy.signatures.signature import Signature
 
 
+class ContextWindowExceededError(Exception):
+    """Raised when a prompt exceeds the model's context window."""
+
+    def __init__(self, message="", model="", llm_provider=""):
+        self.message = message
+        self.model = model
+        self.llm_provider = llm_provider
+        super().__init__(self.message)
+
+
 class AdapterParseError(Exception):
     """Exception raised when adapter cannot parse the LM response."""
 

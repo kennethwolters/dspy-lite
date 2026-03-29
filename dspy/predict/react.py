@@ -1,12 +1,11 @@
 import logging
 from typing import TYPE_CHECKING, Any, Callable, Literal
 
-from litelm import ContextWindowExceededError
-
 import dspy
 from dspy.adapters.types.tool import Tool
 from dspy.primitives.module import Module
 from dspy.signatures.signature import ensure_signature
+from dspy.utils.exceptions import ContextWindowExceededError
 
 logger = logging.getLogger(__name__)
 

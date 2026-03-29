@@ -1,9 +1,8 @@
 import json
 import logging
-from typing import Any, get_origin
+from typing import TYPE_CHECKING, Any, get_origin
 
 import json_repair
-import litelm
 import pydantic
 import regex
 from pydantic.fields import FieldInfo
@@ -17,10 +16,12 @@ from dspy.adapters.utils import (
     serialize_for_json,
     translate_field_type,
 )
-from dspy.clients.lm import LM
 from dspy.signatures.signature import Signature, SignatureMeta
 from dspy.utils.callback import BaseCallback
 from dspy.utils.exceptions import AdapterParseError
+
+if TYPE_CHECKING:
+    from dspy.clients.base_lm import BaseLM
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +46,7 @@ class JSONAdapter(ChatAdapter):
 
     def _json_adapter_call_common(self, lm, lm_kwargs, signature, demos, inputs, call_fn):
         """Common call logic to be used for both sync and async calls."""
-        provider = lm.model.split("/", 1)[0] or "openai"
-        params = litelm.get_supported_openai_params(model=lm.model, custom_llm_provider=provider)
+        params = lm.supported_params
 
         if not params or "response_format" not in params:
             return call_fn(lm, lm_kwargs, signature, demos, inputs)
@@ -54,7 +54,7 @@ class JSONAdapter(ChatAdapter):
         has_tool_calls = any(field.annotation == ToolCalls for field in signature.output_fields.values())
         # Some models support json mode but not structured outputs
         # Follows guidance from: https://docs.litellm.ai/docs/completion/json_mode#check-model-support (originally litellm docs)
-        supports_structured_outputs = litelm.supports_response_schema(model=lm.model, custom_llm_provider=provider)
+        supports_structured_outputs = lm.supports_response_schema
 
         if _has_open_ended_mapping(signature) or (not self.use_native_function_calling and has_tool_calls) or not supports_structured_outputs:
             # We found that structured output mode doesn't work well with dspy.ToolCalls as output field.
@@ -64,7 +64,7 @@ class JSONAdapter(ChatAdapter):
 
     def __call__(
         self,
-        lm: LM,
+        lm: "BaseLM",
         lm_kwargs: dict[str, Any],
         signature: type[Signature],
         demos: list[dict[str, Any]],
@@ -87,7 +87,7 @@ class JSONAdapter(ChatAdapter):
 
     async def acall(
         self,
-        lm: LM,
+        lm: "BaseLM",
         lm_kwargs: dict[str, Any],
         signature: type[Signature],
         demos: list[dict[str, Any]],
