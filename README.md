@@ -8,6 +8,7 @@ DSPy with [litellm](https://github.com/BerriAI/litellm) replaced by [litelm](htt
 - `litellm` (100k+ LOC, 70+ transitive deps) replaced by `litelm` (2.6k LOC, 2 deps)
 - `numpy` moved from core dep to optional `[embeddings]` extra
 - **88% smaller install** (25 MB vs 213 MB, 30 packages vs 72)
+- Unaffected by the [litellm supply chain compromise](https://github.com/kennethwolters/dspy-lite/issues/3) (CVE-2026-33634) — zero litellm code or dependencies
 
 ## Install
 
