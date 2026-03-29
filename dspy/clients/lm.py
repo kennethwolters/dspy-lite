@@ -18,6 +18,8 @@ from dspy.clients.utils_finetune import TrainDataFormat
 from dspy.dsp.utils.settings import settings
 from dspy.utils.callback import BaseCallback
 
+from dspy.utils.exceptions import ContextWindowExceededError as DSPyContextWindowExceededError
+
 from .base_lm import BaseLM
 
 logger = logging.getLogger(__name__)
@@ -118,6 +120,24 @@ class LM(BaseLM):
             )
             self._warned_zero_temp_rollout = True
 
+    @property
+    def supports_function_calling(self) -> bool:
+        return litelm.supports_function_calling(model=self.model)
+
+    @property
+    def supports_reasoning(self) -> bool:
+        return litelm.supports_reasoning(self.model)
+
+    @property
+    def supports_response_schema(self) -> bool:
+        provider = self.model.split("/", 1)[0] or "openai"
+        return litelm.supports_response_schema(model=self.model, custom_llm_provider=provider)
+
+    @property
+    def supported_params(self) -> set[str]:
+        provider = self.model.split("/", 1)[0] or "openai"
+        return set(litelm.get_supported_openai_params(model=self.model, custom_llm_provider=provider) or [])
+
     def _get_cached_completion_fn(self, completion_fn, cache):
         ignored_args_for_cache_key = ["api_key", "api_base", "base_url"]
         if cache:
@@ -156,11 +176,16 @@ class LM(BaseLM):
             completion = litelm_responses_completion
         completion, litelm_cache_args = self._get_cached_completion_fn(completion, cache)
 
-        results = completion(
-            request=dict(model=self.model, messages=messages, **kwargs),
-            num_retries=self.num_retries,
-            cache=litelm_cache_args,
-        )
+        try:
+            results = completion(
+                request=dict(model=self.model, messages=messages, **kwargs),
+                num_retries=self.num_retries,
+                cache=litelm_cache_args,
+            )
+        except litelm.ContextWindowExceededError as e:
+            raise DSPyContextWindowExceededError(
+                message=str(e), model=self.model, llm_provider="litelm"
+            ) from e
 
         self._check_truncation(results)
 
@@ -194,11 +219,16 @@ class LM(BaseLM):
             completion = alitelm_responses_completion
         completion, litelm_cache_args = self._get_cached_completion_fn(completion, cache)
 
-        results = await completion(
-            request=dict(model=self.model, messages=messages, **kwargs),
-            num_retries=self.num_retries,
-            cache=litelm_cache_args,
-        )
+        try:
+            results = await completion(
+                request=dict(model=self.model, messages=messages, **kwargs),
+                num_retries=self.num_retries,
+                cache=litelm_cache_args,
+            )
+        except litelm.ContextWindowExceededError as e:
+            raise DSPyContextWindowExceededError(
+                message=str(e), model=self.model, llm_provider="litelm"
+            ) from e
 
         self._check_truncation(results)
 
