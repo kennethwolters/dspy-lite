@@ -48,12 +48,6 @@ Everything from DSPy works -- the import is still `import dspy`.
 | Install size | 213 MB, 72 packages | 25 MB, 30 packages |
 | API | unchanged | unchanged |
 
-## Known limitations
-
-- `azure_ad_token_provider` passthrough not yet supported (litelm gap)
-- Pydantic `response_format` routing to `beta.chat.completions.parse()` not yet supported (litelm gap)
-- Anthropic citation streaming (`provider_specific_fields`) not yet supported (litelm gap)
-
 ## Documentation
 
 Full DSPy documentation: [dspy.ai](https://dspy.ai)
