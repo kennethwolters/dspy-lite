@@ -317,7 +317,12 @@ def test_reasoning_model_token_parameter():
         ("openai/gpt-5", True),
         ("openai/gpt-5-mini", True),
         ("openai/gpt-5-nano", True),
+        # Dot-separated minor versions (e.g. Azure deployments of gpt-5.x family)
+        ("azure/gpt-5.1", True),
+        ("azure/gpt-5.4-nano", True),
+        ("azure/gpt-5.1-pro", True),
         ("azure/gpt-5-chat", False),  # gpt-5-chat is NOT a reasoning model
+        ("azure/gpt-5.4-chat", False),  # dot-versioned chat variants also excluded
         ("openai/gpt-4", False),
         ("anthropic/claude-2", False),
     ]
