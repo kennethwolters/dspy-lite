@@ -323,6 +323,7 @@ def test_reasoning_model_token_parameter():
         ("azure/gpt-5.1-pro", True),
         ("azure/gpt-5-chat", False),  # gpt-5-chat is NOT a reasoning model
         ("azure/gpt-5.4-chat", False),  # dot-versioned chat variants also excluded
+        ("azure/gpt-5.chat", False),  # real prod deployment name that crashed — dot before `chat`, no minor version
         ("openai/gpt-4", False),
         ("anthropic/claude-2", False),
     ]

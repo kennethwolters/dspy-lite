@@ -90,13 +90,14 @@ class LM(BaseLM):
         # Allow date suffixes like -2023-01-01 after model name or mini/nano/pro
         # For gpt-5, accept either `-` or `.` as the separator before a suffix so
         # dot-versioned variants match (e.g. gpt-5.1, gpt-5.4-nano).
-        # Chat variants (e.g. gpt-5-chat, gpt-5.4-chat) are excluded below since
-        # they are non-reasoning, regardless of dot-versioning.
+        # Chat variants (e.g. gpt-5-chat, gpt-5.4-chat, gpt-5.chat) are excluded
+        # below since they are non-reasoning. `chat` may be preceded by either
+        # `-` or `.` (observed: `gpt-5.chat` in a real Azure deployment).
         model_pattern = re.match(
             r"^(?:o[1345](?:-(?:mini|nano|pro))?(?:-\d{4}-\d{2}-\d{2})?|gpt-5(?:[.\-].*)?)$",
             model_family,
         )
-        if model_pattern and "-chat" in model_family:
+        if model_pattern and re.search(r"[.\-]chat", model_family):
             model_pattern = None
 
         if model_pattern:
