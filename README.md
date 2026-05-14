@@ -53,6 +53,10 @@ Everything from DSPy works -- the import is still `import dspy`.
 
 Full DSPy documentation: [dspy.ai](https://dspy.ai)
 
+## Development disclosure
+
+This project is maintained with AI-assisted coding. Through 2026-05-14, I used Claude Code with Claude Opus 4.6/4.7. As of 2026-05-14, I use pi with GPT-5.5. The human maintainer remains responsible for what is merged and released.
+
 ## License
 
 MIT (inherited from DSPy)
