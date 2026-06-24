@@ -584,7 +584,8 @@ def make_signature(
         if type_ is None:
             type_ = str
         if not isinstance(
-            type_, (type, typing._GenericAlias, types.GenericAlias, typing._SpecialForm, types.UnionType)
+            type_,
+            type | typing._GenericAlias | types.GenericAlias | typing._SpecialForm | types.UnionType,
         ):
             raise ValueError(f"Field types must be types, but received: {type_} of type {type(type_)}.")
         if not isinstance(field, FieldInfo):

@@ -206,7 +206,7 @@ class SingleComponentMultiModalProposer(dspy.Module):
                 if not value:
                     s += "\n"
                 return s
-            elif isinstance(value, (list, tuple)):
+            elif isinstance(value, list | tuple):
                 s = ""
                 for i, item in enumerate(value):
                     s += f"{'#' * level} Item {i + 1}\n"

@@ -47,7 +47,7 @@ def wrap_program(program: dspy.Module, metric: Callable):
 
         try:
             output = metric(example, prediction)
-            if isinstance(output, (int, float)):
+            if isinstance(output, int | float):
                 score = output
             elif isinstance(output, dspy.Prediction):
                 if not hasattr(output, "score"):
