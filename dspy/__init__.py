@@ -1,6 +1,3 @@
-import os
-os.environ.setdefault("LITELLM_LOCAL_MODEL_COST_MAP", "True")
-
 from dspy.predict import *
 from dspy.primitives import *
 from dspy.retrievers import *
@@ -21,7 +18,7 @@ from dspy.utils.usage_tracker import track_usage
 from dspy.dsp.utils.settings import settings
 from dspy.dsp.colbertv2 import ColBERTv2
 from dspy.clients import DSPY_CACHE
-from dspy.__metadata__ import __name__, __package_name__, __version__, __description__, __url__, __author__, __author_email__
+from dspy.__metadata__ import __author__, __author_email__, __description__, __name__, __package_name__, __url__, __version__
 
 configure_dspy_loggers(__name__)
 

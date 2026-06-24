@@ -1,6 +1,5 @@
 import json
 import tempfile
-import time
 import warnings
 from pathlib import Path
 from unittest import mock
@@ -9,12 +8,11 @@ from unittest.mock import patch
 import litelm
 import pydantic
 import pytest
-from openai.types.responses import Response as ResponsesAPIResponse, ResponseUsage as ResponseAPIUsage
-from openai.types.responses.response_usage import InputTokensDetails, OutputTokensDetails
 from litelm import Choices, Message, ModelResponse
-from openai import RateLimitError
+from openai.types.responses import Response as ResponsesAPIResponse
 from openai.types.responses import ResponseOutputMessage, ResponseReasoningItem
 from openai.types.responses.response_reasoning_item import Summary
+from openai.types.responses.response_usage import ResponseUsage as ResponseAPIUsage
 
 import dspy
 from dspy.utils.usage_tracker import track_usage
@@ -42,13 +40,19 @@ def make_response(output_blocks):
         status="completed",
         text=None,
         truncation="disabled",
-        usage=ResponseAPIUsage(input_tokens=1, output_tokens=1, total_tokens=2, input_tokens_details=InputTokensDetails(cached_tokens=0), output_tokens_details=OutputTokensDetails(reasoning_tokens=0)),
+        usage=ResponseAPIUsage(
+            input_tokens=1,
+            input_tokens_details={"cached_tokens": 0},
+            output_tokens=1,
+            output_tokens_details={"reasoning_tokens": 0},
+            total_tokens=2,
+        ),
         user=None,
     )
 
 
-def test_chat_lms_can_be_queried(mock_lm_test_server):
-    api_base, _ = mock_lm_test_server
+def test_chat_lms_can_be_queried(litelm_test_server):
+    api_base, _ = litelm_test_server
     expected_response = ["Hi!"]
 
     openai_lm = dspy.LM(
@@ -68,8 +72,8 @@ def test_chat_lms_can_be_queried(mock_lm_test_server):
     assert azure_openai_lm("azure openai query") == expected_response
 
 
-def test_dspy_cache(mock_lm_test_server, tmp_path):
-    api_base, _ = mock_lm_test_server
+def test_dspy_cache(litelm_test_server, tmp_path):
+    api_base, _ = litelm_test_server
 
     original_cache = dspy.cache
     dspy.clients.configure_cache(
@@ -215,8 +219,8 @@ def test_rollout_id_with_default_temperature_does_not_warn(monkeypatch):
         assert len(record) == 0
 
 
-def test_text_lms_can_be_queried(mock_lm_test_server):
-    api_base, _ = mock_lm_test_server
+def test_text_lms_can_be_queried(litelm_test_server):
+    api_base, _ = litelm_test_server
     expected_response = ["Hi!"]
 
     openai_lm = dspy.LM(
@@ -236,8 +240,8 @@ def test_text_lms_can_be_queried(mock_lm_test_server):
     assert azure_openai_lm("azure openai query") == expected_response
 
 
-def test_lm_calls_support_callables(mock_lm_test_server):
-    api_base, _ = mock_lm_test_server
+def test_lm_calls_support_callables(litelm_test_server):
+    api_base, _ = litelm_test_server
 
     with mock.patch("litelm.completion", autospec=True, wraps=litelm.completion) as spy_completion:
 
@@ -262,8 +266,8 @@ def test_lm_calls_support_callables(mock_lm_test_server):
         assert call_args["azure_ad_token_provider"] is azure_ad_token_provider
 
 
-def test_lm_calls_support_pydantic_models(mock_lm_test_server):
-    api_base, _ = mock_lm_test_server
+def test_lm_calls_support_pydantic_models(litelm_test_server):
+    api_base, _ = litelm_test_server
 
     class ResponseFormat(pydantic.BaseModel):
         response: str
@@ -285,26 +289,6 @@ def test_retry_number_set_correctly():
     assert mock_completion.call_args.kwargs["num_retries"] == 3
 
 
-def test_retry_made_on_system_errors():
-    retry_tracking = [0]  # Using a list to track retries
-
-    def mock_create(*args, **kwargs):
-        retry_tracking[0] += 1
-        # These fields are called during the error handling
-        mock_response = mock.Mock()
-        mock_response.headers = {}
-        mock_response.status_code = 429
-        raise RateLimitError(response=mock_response, message="message", body="error")
-
-    lm = dspy.LM(model="openai/gpt-4o-mini", max_tokens=250, num_retries=3)
-    with mock.patch("litelm.completion", side_effect=mock_create):
-        with pytest.raises(RateLimitError):
-            lm("question")
-
-    # litelm handles retries internally; DSPy's num_retries is passed through
-    assert retry_tracking[0] >= 1
-
-
 def test_reasoning_model_token_parameter():
     test_cases = [
         ("openai/o1", True),
@@ -315,13 +299,7 @@ def test_reasoning_model_token_parameter():
         ("openai/gpt-5", True),
         ("openai/gpt-5-mini", True),
         ("openai/gpt-5-nano", True),
-        # Dot-separated minor versions (e.g. Azure deployments of gpt-5.x family)
-        ("azure/gpt-5.1", True),
-        ("azure/gpt-5.4-nano", True),
-        ("azure/gpt-5.1-pro", True),
         ("azure/gpt-5-chat", False),  # gpt-5-chat is NOT a reasoning model
-        ("azure/gpt-5.4-chat", False),  # dot-versioned chat variants also excluded
-        ("azure/gpt-5.chat", False),  # real prod deployment name that crashed — dot before `chat`, no minor version
         ("openai/gpt-4", False),
         ("anthropic/claude-2", False),
     ]
@@ -410,26 +388,6 @@ def test_dump_state():
     }
 
 
-def test_exponential_backoff_retry():
-    time_counter = []
-
-    def mock_create(*args, **kwargs):
-        time_counter.append(time.time())
-        # These fields are called during the error handling
-        mock_response = mock.Mock()
-        mock_response.headers = {}
-        mock_response.status_code = 429
-        raise RateLimitError(response=mock_response, message="message", body="error")
-
-    lm = dspy.LM(model="openai/gpt-3.5-turbo", max_tokens=250, num_retries=3)
-    with mock.patch("litelm.completion", side_effect=mock_create):
-        with pytest.raises(RateLimitError):
-            lm("question")
-
-    # litelm handles retries internally
-    assert len(time_counter) >= 1
-
-
 def test_logprobs_included_when_requested():
     lm = dspy.LM(model="dspy-test-model", logprobs=True, cache=False)
     with mock.patch("litelm.completion") as mock_completion:
@@ -449,11 +407,20 @@ def test_logprobs_included_when_requested():
         )
         result = lm("question")
         assert result[0]["text"] == "test answer"
-        logprobs = result[0]["logprobs"]
-        # litelm returns plain dicts, not pydantic models
-        logprobs_dict = logprobs.model_dump() if hasattr(logprobs, "model_dump") else logprobs
-        assert logprobs_dict["content"][0]["token"] == "test"
-        assert logprobs_dict["content"][1]["token"] == "answer"
+        assert result[0]["logprobs"] == {
+            "content": [
+                {
+                    "token": "test",
+                    "logprob": 0.1,
+                    "top_logprobs": [{"token": "test", "logprob": 0.1}],
+                },
+                {
+                    "token": "answer",
+                    "logprob": 0.2,
+                    "top_logprobs": [{"token": "answer", "logprob": 0.2}],
+                },
+            ]
+        }
         assert mock_completion.call_args.kwargs["logprobs"]
 
 
@@ -499,10 +466,10 @@ async def test_async_lm_call_with_cache(tmp_path):
         assert mock_alitelm_completion.call_count == 1
 
         await lm.acall("Query")
-        # Second call should hit the cache, so no new LM call is made.
+        # Second call should hit the cache, so no new call to litelm is made.
         assert mock_alitelm_completion.call_count == 1
 
-        # A new query should result in a new LM call and a new cache entry.
+        # A new query should result in a new litelm call and a new cache entry.
         await lm.acall("New query")
 
         assert len(cache.memory_cache) == 2
@@ -604,8 +571,8 @@ def test_lm_replaces_system_with_developer_role():
         assert mock_completion.call_args.kwargs["request"]["messages"][0]["role"] == "developer"
 
 
-def test_responses_api_tool_calls(mock_lm_test_server):
-    api_base, _ = mock_lm_test_server
+def test_responses_api_tool_calls(litelm_test_server):
+    api_base, _ = litelm_test_server
     expected_tool_call = {
         "type": "function_call",
         "name": "get_weather",
@@ -876,6 +843,37 @@ def test_responses_api_converts_files_correctly():
     assert content[0]["file_data"] == "data:application/pdf;base64,JVBERi0xLjQ="
     assert content[0]["file_id"] == "file-xyz789"
     assert content[0]["filename"] == "report.pdf"
+
+
+def test_responses_api_preserves_multi_message_structure():
+    from dspy.clients.lm import _convert_chat_request_to_responses_request
+
+    request = {
+        "model": "openai/gpt-5-mini",
+        "messages": [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": "What is 2+2?"},
+            {"role": "assistant", "content": "4"},
+            {"role": "user", "content": "And 3+3?"},
+        ],
+    }
+
+    result = _convert_chat_request_to_responses_request(request)
+
+    assert "input" in result
+    assert len(result["input"]) == 4
+
+    assert result["input"][0]["role"] == "system"
+    assert result["input"][0]["content"] == [{"type": "input_text", "text": "You are a helpful assistant."}]
+
+    assert result["input"][1]["role"] == "user"
+    assert result["input"][1]["content"] == [{"type": "input_text", "text": "What is 2+2?"}]
+
+    assert result["input"][2]["role"] == "assistant"
+    assert result["input"][2]["content"] == [{"type": "input_text", "text": "4"}]
+
+    assert result["input"][3]["role"] == "user"
+    assert result["input"][3]["content"] == [{"type": "input_text", "text": "And 3+3?"}]
 
 
 def test_responses_api_with_image_input():

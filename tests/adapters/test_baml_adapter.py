@@ -3,7 +3,8 @@ from unittest import mock
 
 import pydantic
 import pytest
-from litelm import Choices, Message, ModelResponse
+from litelm import Choices, Message
+from litelm import ModelResponse
 
 import dspy
 from dspy.adapters.baml_adapter import COMMENT_SYMBOL, INDENTATION, BAMLAdapter

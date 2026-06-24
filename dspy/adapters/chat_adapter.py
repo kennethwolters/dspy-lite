@@ -1,6 +1,6 @@
 import re
 import textwrap
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import Any, NamedTuple
 
 from pydantic.fields import FieldInfo
 
@@ -12,12 +12,10 @@ from dspy.adapters.utils import (
     parse_value,
     translate_field_type,
 )
+from dspy.clients.base_lm import BaseLM
 from dspy.signatures.signature import Signature
 from dspy.utils.callback import BaseCallback
 from dspy.utils.exceptions import AdapterParseError, ContextWindowExceededError
-
-if TYPE_CHECKING:
-    from dspy.clients.base_lm import BaseLM
 
 field_header_pattern = re.compile(r"\[\[ ## (\w+) ## \]\]")
 
@@ -64,7 +62,7 @@ class ChatAdapter(Adapter):
 
     def __call__(
         self,
-        lm: "BaseLM",
+        lm: BaseLM,
         lm_kwargs: dict[str, Any],
         signature: type[Signature],
         demos: list[dict[str, Any]],
@@ -88,7 +86,7 @@ class ChatAdapter(Adapter):
 
     async def acall(
         self,
-        lm: "BaseLM",
+        lm: BaseLM,
         lm_kwargs: dict[str, Any],
         signature: type[Signature],
         demos: list[dict[str, Any]],
@@ -251,7 +249,7 @@ class ChatAdapter(Adapter):
         """
         Formats the values of the specified fields according to the field's DSPy type (input or output),
         annotation (e.g. str, int, etc.), and the type of the value itself. Joins the formatted values
-        into a single string, which is is a multiline string if there are multiple fields.
+        into a single string, which is a multiline string if there are multiple fields.
 
         Args:
             fields_with_values: A dictionary mapping information about a field to its corresponding

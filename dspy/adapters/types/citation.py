@@ -11,7 +11,7 @@ class Citations(Type):
     """Citations extracted from an LM response with source references.
 
     This type represents citations returned by language models that support
-    citation extraction, particularly Anthropic's Citations API through LiteLLM.
+    citation extraction, particularly Anthropic's Citations API through litelm.
     Citations include the quoted text and source information.
 
     Examples:

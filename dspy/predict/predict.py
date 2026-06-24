@@ -19,7 +19,7 @@ from dspy.utils.constants import IS_TYPE_UNDEFINED
 
 logger = logging.getLogger(__name__)
 
-UNSAFE_LM_STATE_KEYS = {"api_base", "base_url"}
+UNSAFE_LM_STATE_KEYS = {"api_base", "base_url", "model_list"}
 
 
 def _sanitize_lm_state(lm_state: dict, allow_unsafe_lm_state: bool) -> dict:
@@ -94,7 +94,7 @@ class Predict(Module, Parameter):
 
         Args:
             state: The saved state of a `Predict` object.
-            allow_unsafe_lm_state: If True, preserves `api_base` and `base_url` from
+            allow_unsafe_lm_state: If True, preserves `api_base`, `base_url`, and `model_list` from
                 serialized LM state. Enable only when loading trusted files.
 
         Returns:

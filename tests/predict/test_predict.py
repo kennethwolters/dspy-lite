@@ -341,8 +341,33 @@ def test_load_state_allows_serialized_endpoint_override_with_opt_in(endpoint_ove
     warning_mock.assert_not_called()
 
 
+def test_load_state_ignores_serialized_model_list_endpoint_override_by_default():
+    override_url = "http://override.local/v1"
+    original_predict = dspy.Predict("q->a")
+    original_predict.lm = dspy.LM(model="openai/gpt-4o-mini")
+    saved_state = copy.deepcopy(original_predict.dump_state())
+    saved_state["lm"]["model_list"] = [
+        {
+            "model_name": "openai/gpt-4o-mini",
+            "litelm_params": {
+                "model": "openai/gpt-4o-mini",
+                "api_base": override_url,
+            },
+        }
+    ]
+
+    with patch("dspy.predict.predict.logger.warning") as warning_mock:
+        loaded_predict = dspy.Predict("q->a")
+        loaded_predict.load_state(saved_state)
+
+    assert loaded_predict.lm is not None
+    assert "model_list" not in loaded_predict.lm.kwargs
+    warning_mock.assert_called_once()
+    assert "model_list" in warning_mock.call_args.args[1]
+
+
 @pytest.mark.parametrize("endpoint_override_key", ["api_base", "base_url"])
-def test_load_prevents_serialized_endpoint_override_reaching_lm(tmp_path, endpoint_override_key):
+def test_load_prevents_serialized_endpoint_override_reaching_litelm(tmp_path, endpoint_override_key):
     file_path = tmp_path / "model.json"
     override_url = "http://override.local/v1"
     original_predict = dspy.Predict("q->a")
@@ -358,19 +383,63 @@ def test_load_prevents_serialized_endpoint_override_reaching_lm(tmp_path, endpoi
     loaded_predict = dspy.Predict("q->a")
     loaded_predict.load(file_path)
 
-    class FakeResp:
+    class FakeResp(dict):
         cache_hit = False
         usage = {}
-        choices = []
 
-        def __getitem__(self, key):
-            return getattr(self, key)
+        def __init__(self):
+            super().__init__({"choices": []})
 
     with patch("litelm.completion", return_value=FakeResp()) as completion_mock:
         loaded_predict.lm.forward(prompt="hello", cache=False)
 
     assert completion_mock.call_count == 1
     assert completion_mock.call_args.kwargs.get(endpoint_override_key) != override_url
+
+
+def test_load_blocks_serialized_model_list_unless_opted_in(tmp_path):
+    file_path = tmp_path / "model.json"
+    override_url = "http://override.local/v1"
+    original_predict = dspy.Predict("q->a")
+    original_predict.lm = dspy.LM(model="openai/gpt-4o-mini")
+    original_predict.save(file_path)
+
+    with open(file_path, "rb") as f:
+        saved_state = orjson.loads(f.read())
+    saved_state["lm"]["model_list"] = [
+        {
+            "model_name": "openai/gpt-4o-mini",
+            "litelm_params": {
+                "model": "openai/gpt-4o-mini",
+                "api_base": override_url,
+            },
+        }
+    ]
+    with open(file_path, "wb") as f:
+        f.write(orjson.dumps(saved_state))
+
+    class FakeResp(dict):
+        cache_hit = False
+        usage = {}
+
+        def __init__(self):
+            super().__init__({"choices": []})
+
+    safe_loaded_predict = dspy.Predict("q->a")
+    safe_loaded_predict.load(file_path)
+    with patch("litelm.completion", return_value=FakeResp()) as completion_mock:
+        safe_loaded_predict.lm.forward(prompt="hello", cache=False)
+
+    assert completion_mock.called
+    assert "model_list" not in completion_mock.call_args.kwargs
+
+    opt_in_loaded_predict = dspy.Predict("q->a")
+    opt_in_loaded_predict.load(file_path, allow_unsafe_lm_state=True)
+    with patch("litelm.completion", return_value=FakeResp()) as completion_mock:
+        opt_in_loaded_predict.lm.forward(prompt="hello", cache=False)
+
+    opt_in_model_list = completion_mock.call_args.kwargs["model_list"]
+    assert opt_in_model_list[0]["litelm_params"]["api_base"] == override_url
 
 
 def test_load_uses_env_api_key_without_honoring_serialized_endpoint_override(tmp_path, monkeypatch):
@@ -391,13 +460,12 @@ def test_load_uses_env_api_key_without_honoring_serialized_endpoint_override(tmp
 
     monkeypatch.setenv("openai_API_KEY", env_api_key)
 
-    class FakeResp:
+    class FakeResp(dict):
         cache_hit = False
         usage = {}
-        choices = []
 
-        def __getitem__(self, key):
-            return getattr(self, key)
+        def __init__(self):
+            super().__init__({"choices": []})
 
     # Simulates legacy behavior by allowing serialized endpoint overrides.
     opt_in_loaded_predict = dspy.Predict("q->a")
@@ -1139,7 +1207,7 @@ def test_list_string(caplog):
     log_test_helper()
 
     class TypedSignature(dspy.Signature):
-        nameList: list[str] = dspy.InputField()
+        nameList: list[str] = dspy.InputField()  # noqa: N815
         result: str = dspy.OutputField()
 
     predict_instance = Predict(TypedSignature)

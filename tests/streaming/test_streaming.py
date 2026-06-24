@@ -16,8 +16,8 @@ from dspy.streaming import StatusMessage, StatusMessageProvider, StreamResponse,
 
 
 @pytest.mark.anyio
-async def test_streamify_yields_expected_response_chunks(mock_lm_test_server):
-    api_base, _ = mock_lm_test_server
+async def test_streamify_yields_expected_response_chunks(litelm_test_server):
+    api_base, _ = litelm_test_server
     lm = dspy.LM(
         model="openai/dspy-test-model",
         api_base=api_base,
@@ -48,8 +48,8 @@ async def test_streamify_yields_expected_response_chunks(mock_lm_test_server):
 
 
 @pytest.mark.anyio
-async def test_streaming_response_yields_expected_response_chunks(mock_lm_test_server):
-    api_base, _ = mock_lm_test_server
+async def test_streaming_response_yields_expected_response_chunks(litelm_test_server):
+    api_base, _ = litelm_test_server
     lm = dspy.LM(
         model="openai/dspy-test-model",
         api_base=api_base,

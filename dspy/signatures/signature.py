@@ -173,6 +173,14 @@ class SignatureMeta(type(BaseModel)):
         ordered_annotations.update({k: v for k, v in raw_annotations.items() if k not in ordered_annotations})
         namespace["__annotations__"] = ordered_annotations
 
+        # On Python 3.14+, prevent Pydantic from capturing this frame's locals via
+        # parent_frame_namespace(). Those locals include references to the __annotate__
+        # closure and the class namespace dict, which contain unpicklable _abc._abc_data
+        # and break cloudpickle. This is safe because DSPy eagerly resolves all
+        # annotations above.
+        if sys.version_info >= (3, 14):
+            kwargs["__pydantic_reset_parent_namespace__"] = False
+
         # Let Pydantic do its thing
         cls = super().__new__(mcs, signature_name, bases, namespace, **kwargs)
 
@@ -584,8 +592,7 @@ def make_signature(
         if type_ is None:
             type_ = str
         if not isinstance(
-            type_,
-            type | typing._GenericAlias | types.GenericAlias | typing._SpecialForm | types.UnionType,
+            type_, (type, typing._GenericAlias, types.GenericAlias, typing._SpecialForm, types.UnionType)
         ):
             raise ValueError(f"Field types must be types, but received: {type_} of type {type(type_)}.")
         if not isinstance(field, FieldInfo):

@@ -7,8 +7,6 @@ These types represent the state and history of REPL-based execution:
 - REPLHistory: Container for the full interaction history
 """
 
-from __future__ import annotations
-
 import json
 from typing import TYPE_CHECKING, Any, Iterator
 
@@ -40,9 +38,9 @@ class REPLVariable(pydantic.BaseModel):
         cls,
         name: str,
         value: Any,
-        field_info: FieldInfo | None = None,
+        field_info: "FieldInfo | None" = None,
         preview_chars: int = 1000,
-    ) -> REPLVariable:
+    ) -> "REPLVariable":
         """Create REPLVariable from an actual value and optional field info.
 
         Args:
@@ -52,7 +50,7 @@ class REPLVariable(pydantic.BaseModel):
             preview_chars: Max characters for preview
         """
         jsonable = serialize_for_json(value)
-        if isinstance(jsonable, dict | list):
+        if isinstance(jsonable, (dict, list)):
             value_str = json.dumps(jsonable, indent=2)
         else:
             value_str = str(jsonable)
@@ -145,7 +143,7 @@ class REPLHistory(pydantic.BaseModel):
     def serialize_model(self) -> str:
         return self.format()
 
-    def append(self, *, reasoning: str = "", code: str, output: str) -> REPLHistory:
+    def append(self, *, reasoning: str = "", code: str, output: str) -> "REPLHistory":
         """Return a new REPLHistory with the entry appended."""
         new_entry = REPLEntry(reasoning=reasoning, code=code, output=output)
         return REPLHistory(entries=list(self.entries) + [new_entry], max_output_chars=self.max_output_chars)

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 import math
 import random
@@ -49,12 +47,12 @@ class SIMBA(Teleprompter):
     def __init__(
         self,
         *,
-        metric: Callable[[dspy.Example, dict[str, Any]], float],
+        metric: Callable[["dspy.Example", dict[str, Any]], float],
         bsize: int = 32,
         num_candidates: int = 6,
         max_steps: int = 8,
         max_demos: int = 4,
-        prompt_model: dspy.LM | None = None,
+        prompt_model: "dspy.LM | None" = None,
         teacher_settings: dict | None = None,
         demo_input_field_maxlen: int = 100_000,
         num_threads: int | None = None,
@@ -105,11 +103,11 @@ class SIMBA(Teleprompter):
 
     def compile(
         self,
-        student: dspy.Module,
+        student: "dspy.Module",
         *,
-        trainset: list[dspy.Example],
+        trainset: list["dspy.Example"],
         seed: int = 0
-    ) -> dspy.Module:
+    ) -> "dspy.Module":
         """
         Compile and optimize the student module using SIMBA.
         
@@ -164,7 +162,7 @@ class SIMBA(Teleprompter):
             probs = [val / sum_exps for val in exps]
             return rng_obj.choices(program_idxs, weights=probs, k=1)[0]
 
-        def register_new_program(prog: dspy.Module, score_list: list[float]) -> None:
+        def register_new_program(prog: "dspy.Module", score_list: list[float]) -> None:
             nonlocal next_program_idx
             next_program_idx += 1
             new_idx = next_program_idx

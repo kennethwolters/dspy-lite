@@ -2,10 +2,10 @@ from unittest import mock
 
 import pydantic
 import pytest
-from openai.types.responses import Response as ResponsesAPIResponse, ResponseUsage as ResponseAPIUsage
-from openai.types.responses.response_usage import InputTokensDetails, OutputTokensDetails
 from litelm import ChatCompletionMessageToolCall, Choices, Function, Message, ModelResponse
+from openai.types.responses import Response as ResponsesAPIResponse
 from openai.types.responses import ResponseOutputMessage
+from openai.types.responses.response_usage import ResponseUsage as ResponseAPIUsage
 
 import dspy
 
@@ -962,7 +962,13 @@ def test_json_adapter_with_responses_api():
         status="completed",
         text=None,
         truncation="disabled",
-        usage=ResponseAPIUsage(input_tokens=10, output_tokens=5, total_tokens=15, input_tokens_details=InputTokensDetails(cached_tokens=0), output_tokens_details=OutputTokensDetails(reasoning_tokens=0)),
+        usage=ResponseAPIUsage(
+            input_tokens=10,
+            input_tokens_details={"cached_tokens": 0},
+            output_tokens=5,
+            output_tokens_details={"reasoning_tokens": 0},
+            total_tokens=15,
+        ),
         user=None,
     )
 

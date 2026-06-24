@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-from tests.test_utils.server import mock_lm_test_server, read_mock_lm_test_server_request_logs  # noqa: F401
+from tests.test_utils.server import litelm_test_server, read_litelm_test_server_request_logs  # noqa: F401
 
 SKIP_DEFAULT_FLAGS = ["reliability", "extra", "llm_call", "deno"]
 

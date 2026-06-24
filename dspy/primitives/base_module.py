@@ -56,7 +56,7 @@ class BaseModule:
                     for sub_name, param in value.named_parameters():
                         add_parameter(f"{name}.{sub_name}", param)
 
-            elif isinstance(value, list | tuple):
+            elif isinstance(value, (list, tuple)):
                 for idx, item in enumerate(value):
                     add_parameter(f"{name}[{idx}]", item)
 
@@ -96,7 +96,7 @@ class BaseModule:
                 for sub_name, sub_item in item.__dict__.items():
                     add_to_queue(f"{name}.{sub_name}", sub_item)
 
-            elif isinstance(item, list | tuple):
+            elif isinstance(item, (list, tuple)):
                 for i, sub_item in enumerate(item):
                     add_to_queue(f"{name}[{i}]", sub_item)
 

@@ -4,7 +4,7 @@ DSPy with [litellm](https://github.com/BerriAI/litellm) replaced by [litelm](htt
 
 ## What this is
 
-- Same DSPy 3.1.3 -- signatures, modules (Predict, CoT, ReAct), optimizers (Bootstrap, MIPRO, SIMBA, GEPA, GRPO)
+- Same DSPy 3.2.1 -- signatures, modules (Predict, CoT, ReAct), optimizers (Bootstrap, MIPRO, SIMBA, GEPA, GRPO)
 - `litellm` (100k+ LOC, 70+ transitive deps) replaced by `litelm` (2.6k LOC, 2 deps)
 - `numpy` moved from core dep to optional `[embeddings]` extra
 - **88% smaller install** (25 MB vs 213 MB, 30 packages vs 72)

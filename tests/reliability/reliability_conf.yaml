@@ -1,0 +1,81 @@
+adapter: chat
+model_list:
+  # The model to use for judging the correctness of program
+  # outputs throughout reliability test suites. We recommend using
+  # a high quality model as the judge, such as OpenAI GPT-4o
+  - model_name: "judge"
+    litelm_params:
+      # model: "<litelm_provider>/<litelm_model_name>"
+      # api_key: "api key"
+      # api_base: "<api_base>"
+  - model_name: "gpt-4o"
+    litelm_params:
+      # model: "<litelm_provider>/<litelm_model_name>"
+      # api_key: "api key"
+      # api_base: "<api_base>"
+  - model_name: "gpt-4o-mini"
+    litelm_params:
+      # model: "<litelm_provider>/<litelm_model_name>"
+      # api_key: "api key"
+      # api_base: "<api_base>"
+  - model_name: "gpt-4-turbo"
+    litelm_params:
+      # model: "<litelm_provider>/<litelm_model_name>"
+      # api_key: "api key"
+      # api_base: "<api_base>"
+  - model_name: "gpt-o1"
+    litelm_params:
+      # model: "<litelm_provider>/<litelm_model_name>"
+      # api_key: "api key"
+      # api_base: "<api_base>"
+  - model_name: "gpt-o1-mini"
+    litelm_params:
+      # model: "<litelm_provider>/<litelm_model_name>"
+      # api_key: "api key"
+      # api_base: "<api_base>"
+  - model_name: "claude-3.5-sonnet"
+    litelm_params:
+      # model: "<litelm_provider>/<litelm_model_name>"
+      # api_key: "api key"
+      # api_base: "<api_base>"
+  - model_name: "claude-3.5-haiku"
+    litelm_params:
+      # model: "<litelm_provider>/<litelm_model_name>"
+      # api_key: "api key"
+      # api_base: "<api_base>"
+  - model_name: "gemini-1.5-pro"
+    litelm_params:
+      # model: "<litelm_provider>/<litelm_model_name>"
+      # api_key: "api key"
+      # api_base: "<api_base>"
+  - model_name: "gemini-1.5-flash"
+    litelm_params:
+      # model: "<litelm_provider>/<litelm_model_name>"
+      # api_key: "api key"
+      # api_base: "<api_base>"
+  - model_name: "llama-3.1-405b-instruct"
+    litelm_params:
+      # model: "<litelm_provider>/<litelm_model_name>"
+      # api_key: "api key"
+      # api_base: "<api_base>"
+  - model_name: "llama-3.1-70b-instruct"
+    litelm_params:
+      # model: "<litelm_provider>/<litelm_model_name>"
+      # api_key: "api key"
+      # api_base: "<api_base>"
+  - model_name: "llama-3.1-8b-instruct"
+    litelm_params:
+      # model: "<litelm_provider>/<litelm_model_name>"
+      # api_key: "api key"
+      # api_base: "<api_base>"
+  - model_name: "llama-3.2-3b-instruct"
+    litelm_params:
+      # model: "<litelm_provider>/<litelm_model_name>"
+      # api_key: "api key"
+      # api_base: "<api_base>"
+  - model_name: "deepseek-r1"
+    litelm_params:
+      # model: "<litelm_provider>/<litelm_model_name>"
+      # api_key: "api key"
+      # max_tokens: 10000
+
