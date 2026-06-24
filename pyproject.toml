@@ -88,11 +88,8 @@ Documentation = "https://dspy.ai"
 [tool.pytest.ini_options]
 filterwarnings = []
 
-[tool.uv]
-exclude-newer = "2026-03-22"
-
 [tool.uv.sources]
-# litelm exempt from exclude-newer (same maintainer) — git source bypasses date filter
+# Use the maintainer-owned git source for local resolution.
 litelm = { git = "https://github.com/kennethwolters/litelm.git" }
 
 [tool.ruff]

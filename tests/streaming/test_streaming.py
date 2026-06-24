@@ -1108,7 +1108,6 @@ async def test_streaming_allows_custom_streamable_type():
 
 
 @pytest.mark.anyio
-@pytest.mark.xfail(reason="litelm Delta does not support provider_specific_fields (litellm-specific extension)")
 async def test_streaming_with_citations():
     class AnswerWithSources(dspy.Signature):
         """Answer questions using provided documents with citations."""

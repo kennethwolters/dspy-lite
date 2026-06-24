@@ -236,7 +236,6 @@ def test_text_lms_can_be_queried(mock_lm_test_server):
     assert azure_openai_lm("azure openai query") == expected_response
 
 
-@pytest.mark.xfail(reason="litelm does not yet strip client-level kwargs like azure_ad_token_provider")
 def test_lm_calls_support_callables(mock_lm_test_server):
     api_base, _ = mock_lm_test_server
 
@@ -263,7 +262,6 @@ def test_lm_calls_support_callables(mock_lm_test_server):
         assert call_args["azure_ad_token_provider"] is azure_ad_token_provider
 
 
-@pytest.mark.xfail(reason="litelm does not yet route pydantic response_format to beta.chat.completions.parse()")
 def test_lm_calls_support_pydantic_models(mock_lm_test_server):
     api_base, _ = mock_lm_test_server
 

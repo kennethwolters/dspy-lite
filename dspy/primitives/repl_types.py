@@ -52,7 +52,7 @@ class REPLVariable(pydantic.BaseModel):
             preview_chars: Max characters for preview
         """
         jsonable = serialize_for_json(value)
-        if isinstance(jsonable, (dict, list)):
+        if isinstance(jsonable, dict | list):
             value_str = json.dumps(jsonable, indent=2)
         else:
             value_str = str(jsonable)
