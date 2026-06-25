@@ -56,56 +56,56 @@ class Prediction(Example):
         return float(self._store["score"])
 
     def __add__(self, other):
-        if isinstance(other, float | int):
+        if isinstance(other, (float, int)):
             return self.__float__() + other
         elif isinstance(other, Prediction):
             return self.__float__() + float(other)
         raise TypeError(f"Unsupported type for addition: {type(other)}")
 
     def __radd__(self, other):
-        if isinstance(other, float | int):
+        if isinstance(other, (float, int)):
             return other + self.__float__()
         elif isinstance(other, Prediction):
             return float(other) + self.__float__()
         raise TypeError(f"Unsupported type for addition: {type(other)}")
 
     def __truediv__(self, other):
-        if isinstance(other, float | int):
+        if isinstance(other, (float, int)):
             return self.__float__() / other
         elif isinstance(other, Prediction):
             return self.__float__() / float(other)
         raise TypeError(f"Unsupported type for division: {type(other)}")
 
     def __rtruediv__(self, other):
-        if isinstance(other, float | int):
+        if isinstance(other, (float, int)):
             return other / self.__float__()
         elif isinstance(other, Prediction):
             return float(other) / self.__float__()
         raise TypeError(f"Unsupported type for division: {type(other)}")
 
     def __lt__(self, other):
-        if isinstance(other, float | int):
+        if isinstance(other, (float, int)):
             return self.__float__() < other
         elif isinstance(other, Prediction):
             return self.__float__() < float(other)
         raise TypeError(f"Unsupported type for comparison: {type(other)}")
 
     def __le__(self, other):
-        if isinstance(other, float | int):
+        if isinstance(other, (float, int)):
             return self.__float__() <= other
         elif isinstance(other, Prediction):
             return self.__float__() <= float(other)
         raise TypeError(f"Unsupported type for comparison: {type(other)}")
 
     def __gt__(self, other):
-        if isinstance(other, float | int):
+        if isinstance(other, (float, int)):
             return self.__float__() > other
         elif isinstance(other, Prediction):
             return self.__float__() > float(other)
         raise TypeError(f"Unsupported type for comparison: {type(other)}")
 
     def __ge__(self, other):
-        if isinstance(other, float | int):
+        if isinstance(other, (float, int)):
             return self.__float__() >= other
         elif isinstance(other, Prediction):
             return self.__float__() >= float(other)

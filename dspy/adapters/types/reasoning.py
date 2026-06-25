@@ -3,9 +3,9 @@ from typing import TYPE_CHECKING, Any, Optional
 import pydantic
 
 from dspy.adapters.types.base_type import Type
+from dspy.clients.base_lm import BaseLM
 
 if TYPE_CHECKING:
-    from dspy.clients.base_lm import BaseLM
     from dspy.signatures.signature import Signature
 
 
@@ -47,7 +47,7 @@ class Reasoning(Type):
         cls,
         signature: type["Signature"],
         field_name: str,
-        lm: "BaseLM",
+        lm: BaseLM,
         lm_kwargs: dict[str, Any],
     ) -> type["Signature"]:
         if "reasoning_effort" in lm_kwargs:
@@ -66,9 +66,10 @@ class Reasoning(Type):
             return signature
 
         if "gpt-5" in lm.model and lm.model_type == "chat":
-            # When using the chat completion API on GPT-5 family models, reasoning content is not available
-            # in the response. As a workaround, we don't enable native reasoning for GPT-5 chat completions.
-            # Originally a litellm issue (no longer used): https://github.com/BerriAI/litellm/issues/14748
+            # There is a caveat of Litelm as 1.79.0 that when using the chat completion API on GPT-5 family models,
+            # the reasoning content is not available in the response. As a workaround, we don't enable the native
+            # reasoning feature for GPT-5 family models when using the chat completion API.
+            # Litelm issue: https://github.com/BerriAI/litelm/issues/14748
             return signature
 
         lm_kwargs["reasoning_effort"] = reasoning_effort

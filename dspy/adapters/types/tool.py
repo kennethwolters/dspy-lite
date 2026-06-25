@@ -393,7 +393,7 @@ def _resolve_json_schema_reference(schema: dict) -> dict:
         return schema
 
     def resolve_refs(obj: Any) -> Any:
-        if not isinstance(obj, dict | list):
+        if not isinstance(obj, (dict, list)):
             return obj
         if isinstance(obj, dict):
             if "$ref" in obj:

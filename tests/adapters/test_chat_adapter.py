@@ -195,7 +195,7 @@ def test_chat_adapter_exception_raised_on_failure():
     signature = dspy.make_signature("question->answer")
     adapter = dspy.ChatAdapter()
     invalid_completion = "{'output':'mismatched value'}"
-    with pytest.raises(dspy.utils.exceptions.AdapterParseError, match="Adapter ChatAdapter failed to parse*"):
+    with pytest.raises(dspy.utils.exceptions.AdapterParseError, match=r"Adapter ChatAdapter failed to parse.*"):
         adapter.parse(signature, invalid_completion)
 
 

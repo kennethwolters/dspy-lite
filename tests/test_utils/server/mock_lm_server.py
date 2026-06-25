@@ -5,7 +5,7 @@ import os
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-TEST_SERVER_LOG_FILE_PATH_ENV_VAR = "TEST_SERVER_LOG_FILE_PATH"
+LITELM_TEST_SERVER_LOG_FILE_PATH_ENV_VAR = "TEST_SERVER_LOG_FILE_PATH"
 
 
 def _read_body(handler):
@@ -65,7 +65,7 @@ def _extract_content(body):
 
 
 def _log_request(body):
-    log_path = os.environ.get(TEST_SERVER_LOG_FILE_PATH_ENV_VAR)
+    log_path = os.environ.get(LITELM_TEST_SERVER_LOG_FILE_PATH_ENV_VAR)
     if not log_path:
         return
     with open(log_path, "a") as f:

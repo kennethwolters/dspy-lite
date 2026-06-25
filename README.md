@@ -4,10 +4,10 @@ DSPy with [litellm](https://github.com/BerriAI/litellm) replaced by [litelm](htt
 
 ## What this is
 
-- Same DSPy 3.1.3 -- signatures, modules (Predict, CoT, ReAct), optimizers (Bootstrap, MIPRO, SIMBA, GEPA, GRPO)
+- Same DSPy 3.2.1 -- signatures, modules (Predict, CoT, ReAct), optimizers (Bootstrap, MIPRO, SIMBA, GEPA, GRPO)
 - `litellm` (100k+ LOC, 70+ transitive deps) replaced by `litelm` (2.6k LOC, 2 deps)
 - `numpy` moved from core dep to optional `[embeddings]` extra
-- **88% smaller install** (25 MB vs 213 MB, 30 packages vs 72)
+- **83% smaller clean install** (24 MB vs 144 MB, 36 packages vs 67)
 - Unaffected by the [litellm supply chain compromise](https://github.com/kennethwolters/dspy-lite/issues/3) (CVE-2026-33634) — zero litellm code or dependencies
 
 ## Install
@@ -46,7 +46,7 @@ Everything from DSPy works -- the import is still `import dspy`.
 |---|---|---|
 | LM routing | litellm (34 MB, 201k LOC) | litelm (87 KB, 2.6k LOC) |
 | numpy | core dep (60 MB) | optional `[embeddings]` |
-| Install size | 213 MB, 72 packages | 25 MB, 30 packages |
+| Clean install size | 144 MB, 67 packages | 24 MB, 36 packages |
 | API | unchanged | unchanged |
 
 ## Documentation

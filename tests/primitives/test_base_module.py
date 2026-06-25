@@ -5,7 +5,8 @@ import threading
 from unittest.mock import patch
 
 import pytest
-from litelm import Choices, Message, ModelResponse, Usage
+from litelm import Choices, Message, ModelResponse
+from litelm import Usage
 
 import dspy
 from dspy.primitives.prediction import Prediction

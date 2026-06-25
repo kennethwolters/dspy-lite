@@ -238,10 +238,10 @@ def test_merge_usage_entries_with_none_values():
 
 
 def test_merge_usage_entries_with_pydantic_models():
-    """Test merging usage entries with Pydantic model objects (e.g. PromptTokensDetailsWrapper)."""
+    """Test merging usage entries with Pydantic model objects, like `PromptTokensDetailsWrapper` from litelm."""
     tracker = UsageTracker()
 
-    # Simplified version of Pydantic models for testing usage entry merging.
+    # Here we define a simplified version of the Pydantic models from litelm to avoid the dependency change on litelm.
     class CacheCreationTokenDetails(BaseModel):
         ephemeral_5m_input_tokens: int
         ephemeral_1h_input_tokens: int

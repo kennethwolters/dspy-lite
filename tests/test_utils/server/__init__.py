@@ -7,11 +7,11 @@ from typing import Any
 
 import pytest
 
-from tests.test_utils.server.mock_lm_server import TEST_SERVER_LOG_FILE_PATH_ENV_VAR, start_server
+from tests.test_utils.server.mock_lm_server import LITELM_TEST_SERVER_LOG_FILE_PATH_ENV_VAR, start_server
 
 
 @pytest.fixture()
-def mock_lm_test_server() -> tuple[str, str]:
+def litelm_test_server() -> tuple[str, str]:
     """
     Start a mock LM test server for DSPy integration tests, and tear it down
     when the test case completes.
@@ -23,7 +23,7 @@ def mock_lm_test_server() -> tuple[str, str]:
         port = _get_random_port()
         host = "127.0.0.1"
 
-        os.environ[TEST_SERVER_LOG_FILE_PATH_ENV_VAR] = server_log_file_path
+        os.environ[LITELM_TEST_SERVER_LOG_FILE_PATH_ENV_VAR] = server_log_file_path
 
         server = start_server(port, host)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -34,10 +34,10 @@ def mock_lm_test_server() -> tuple[str, str]:
 
         server.shutdown()
         thread.join(timeout=5)
-        os.environ.pop(TEST_SERVER_LOG_FILE_PATH_ENV_VAR, None)
+        os.environ.pop(LITELM_TEST_SERVER_LOG_FILE_PATH_ENV_VAR, None)
 
 
-def read_mock_lm_test_server_request_logs(server_log_file_path: str) -> list[dict[str, Any]]:
+def read_litelm_test_server_request_logs(server_log_file_path: str) -> list[dict[str, Any]]:
     """
     Read request logs from the mock LM server used during DSPy integration tests.
 

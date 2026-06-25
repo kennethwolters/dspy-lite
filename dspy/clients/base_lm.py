@@ -27,6 +27,24 @@ class BaseLM:
 
 
     class MyLM(dspy.BaseLM):
+        @property
+        def supports_function_calling(self) -> bool:
+            return self.model.startswith("openai/gpt-4o")
+
+        @property
+        def supports_reasoning(self) -> bool:
+            return self.model.startswith("anthropic/claude-3-7")
+
+        @property
+        def supports_response_schema(self) -> bool:
+            return self.model.startswith("openai/gpt-4o")
+
+        @property
+        def supported_params(self) -> set[str]:
+            if self.model.startswith("openai/gpt-4o"):
+                return {"response_format"}  # accepts response_format=...
+            return set()
+
         def forward(self, prompt, messages=None, **kwargs):
             client = OpenAI()
             return client.chat.completions.create(
@@ -51,18 +69,22 @@ class BaseLM:
 
     @property
     def supports_function_calling(self) -> bool:
+        """Whether the model supports function calling (tool use)."""
         return False
 
     @property
     def supports_reasoning(self) -> bool:
+        """Whether the model supports native reasoning (extended thinking)."""
         return False
 
     @property
     def supports_response_schema(self) -> bool:
+        """Whether the model supports structured output via response schema."""
         return False
 
     @property
     def supported_params(self) -> set[str]:
+        """Set of supported OpenAI-style parameter names for the model."""
         return set()
 
     def _process_lm_response(self, response, prompt, messages, **kwargs):
@@ -84,7 +106,7 @@ class BaseLM:
             "kwargs": kwargs,
             "response": response,
             "outputs": outputs,
-            "usage": dict(response.usage),
+            "usage": dict(getattr(response, "usage", {})),
             "cost": getattr(response, "_hidden_params", {}).get("response_cost"),
             "timestamp": datetime.datetime.now().isoformat(),
             "uuid": str(uuid.uuid4()),
@@ -129,9 +151,18 @@ class BaseLM:
         """Forward pass for the language model.
 
         Subclasses must implement this method, and the response should be identical to either of the following formats:
+
         - [OpenAI response format](https://platform.openai.com/docs/api-reference/responses/object)
         - [OpenAI chat completion format](https://platform.openai.com/docs/api-reference/chat/object)
         - [OpenAI text completion format](https://platform.openai.com/docs/api-reference/completions/object)
+
+        Raises:
+            dspy.ContextWindowExceededError: When the request fails because the
+                input exceeds the model's context window. DSPy adapters and
+                modules rely on this error to trigger fallback behavior (e.g.
+                truncating the prompt and retrying). Each subclass is
+                responsible for catching its provider's native error and
+                re-raising it as `dspy.ContextWindowExceededError`.
         """
         raise NotImplementedError("Subclasses must implement this method.")
 
@@ -144,9 +175,18 @@ class BaseLM:
         """Async forward pass for the language model.
 
         Subclasses must implement this method, and the response should be identical to either of the following formats:
+
         - [OpenAI response format](https://platform.openai.com/docs/api-reference/responses/object)
         - [OpenAI chat completion format](https://platform.openai.com/docs/api-reference/chat/object)
         - [OpenAI text completion format](https://platform.openai.com/docs/api-reference/completions/object)
+
+        Raises:
+            dspy.ContextWindowExceededError: When the request fails because the
+                input exceeds the model's context window. DSPy adapters and
+                modules rely on this error to trigger fallback behavior (e.g.
+                truncating the prompt and retrying). Each subclass is
+                responsible for catching its provider's native error and
+                re-raising it as `dspy.ContextWindowExceededError`.
         """
         raise NotImplementedError("Subclasses must implement this method.")
 
@@ -219,17 +259,22 @@ class BaseLM:
         outputs = []
         for c in response.choices:
             output = {}
-            output["text"] = c.message.content if hasattr(c, "message") else c.text
+            if hasattr(c, "message"):
+                output["text"] = c.message.content
+            elif hasattr(c, "text"):
+                output["text"] = c.text
+            else:
+                output["text"] = c["text"]
 
             if hasattr(c, "message") and hasattr(c.message, "reasoning_content") and c.message.reasoning_content:
                 output["reasoning_content"] = c.message.reasoning_content
 
             if merged_kwargs.get("logprobs"):
-                output["logprobs"] = c.logprobs if hasattr(c, "logprobs") else getattr(c, "logprobs", None)
+                output["logprobs"] = c.logprobs if hasattr(c, "logprobs") else c["logprobs"]
             if hasattr(c, "message") and getattr(c.message, "tool_calls", None):
                 output["tool_calls"] = c.message.tool_calls
 
-            # Extract citations from LM response if available
+            # Extract citations from litelm response if available
             citations = self._extract_citations_from_response(c)
             if citations:
                 output["citations"] = citations
@@ -242,8 +287,8 @@ class BaseLM:
         return outputs
 
     def _extract_citations_from_response(self, choice):
-        """Extract citations from LM response if available.
-        Reference: https://docs.litellm.ai/docs/providers/anthropic#beta-citations-api (originally litellm docs)
+        """Extract citations from litelm response if available.
+        Reference: https://docs.litelm.ai/docs/providers/anthropic#beta-citations-api
 
         Args:
             choice: The choice object from response.choices
@@ -252,7 +297,7 @@ class BaseLM:
             A list of citation dictionaries or None if no citations found
         """
         try:
-            # Check for citations in LiteLLM provider_specific_fields
+            # Check for citations in litelm provider_specific_fields
             citations_data = choice.message.provider_specific_fields.get("citations")
             if isinstance(citations_data, list):
                 return [citation for citations in citations_data for citation in citations]

@@ -8,8 +8,6 @@ to programmatically examine, decompose, and recursively call sub-LLMs over snipp
 Reference: "Recursive Language Models" (Zhang, Kraska, Khattab, 2025)
 """
 
-from __future__ import annotations
-
 import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -124,13 +122,13 @@ class RLM(Module):
 
     def __init__(
         self,
-        signature: type[Signature] | str,
+        signature: "type[Signature] | str",
         max_iterations: int = 20,
         max_llm_calls: int = 50,
         max_output_chars: int = 10_000,
         verbose: bool = False,
         tools: list[Callable] | None = None,
-        sub_lm: dspy.LM | None = None,
+        sub_lm: "dspy.LM | None" = None,
         interpreter: CodeInterpreter | None = None,
     ):
         """
@@ -284,7 +282,7 @@ class RLM(Module):
     # Signature Building
     # =========================================================================
 
-    def _build_signatures(self) -> tuple[Signature, Signature]:
+    def _build_signatures(self) -> "tuple[Signature, Signature]":
         """Build the action and extract signatures from templates."""
         inputs_str = ", ".join(f"`{n}`" for n in self.signature.input_fields)
 

@@ -9,6 +9,7 @@ import litelm
 import pydantic
 from anyio.streams.memory import MemoryObjectSendStream
 from asyncer import syncify
+from litelm import ContextWindowExceededError as LitelmContextWindowExceededError
 
 import dspy
 from dspy.clients.cache import request_cache
@@ -17,7 +18,7 @@ from dspy.clients.provider import Provider, ReinforceJob, TrainingJob
 from dspy.clients.utils_finetune import TrainDataFormat
 from dspy.dsp.utils.settings import settings
 from dspy.utils.callback import BaseCallback
-from dspy.utils.exceptions import ContextWindowExceededError as DSPyContextWindowExceededError
+from dspy.utils.exceptions import ContextWindowExceededError
 
 from .base_lm import BaseLM
 
@@ -86,13 +87,11 @@ class LM(BaseLM):
         # Handle model-specific configuration for different model families
         model_family = model.split("/")[-1].lower() if "/" in model else model.lower()
 
-        # Recognize OpenAI reasoning models (o1, o3, o4, gpt-5 family)
-        # Allow date suffixes like -2023-01-01 after model name or mini/nano/pro
+        # Recognize OpenAI reasoning models (o1, o3, o4, gpt-5 family).
         # For gpt-5, accept either `-` or `.` as the separator before a suffix so
         # dot-versioned variants match (e.g. gpt-5.1, gpt-5.4-nano).
         # Chat variants (e.g. gpt-5-chat, gpt-5.4-chat, gpt-5.chat) are excluded
-        # below since they are non-reasoning. `chat` may be preceded by either
-        # `-` or `.` (observed: `gpt-5.chat` in a real Azure deployment).
+        # below since they are non-reasoning.
         model_pattern = re.match(
             r"^(?:o[1345](?:-(?:mini|nano|pro))?(?:-\d{4}-\d{2}-\d{2})?|gpt-5(?:[.\-].*)?)$",
             model_family,
@@ -116,13 +115,12 @@ class LM(BaseLM):
 
         self._warn_zero_temp_rollout(self.kwargs.get("temperature"), self.kwargs.get("rollout_id"))
 
-    def _warn_zero_temp_rollout(self, temperature: float | None, rollout_id):
-        if not self._warned_zero_temp_rollout and rollout_id is not None and temperature == 0:
-            warnings.warn(
-                "rollout_id has no effect when temperature=0; set temperature>0 to bypass the cache.",
-                stacklevel=3,
-            )
-            self._warned_zero_temp_rollout = True
+    @property
+    def _provider_name(self) -> str:
+        """Extract the provider name from the model string (e.g., 'openai' from 'openai/gpt-4o')."""
+        if "/" in self.model:
+            return self.model.split("/", 1)[0]
+        return "openai"
 
     @property
     def supports_function_calling(self) -> bool:
@@ -134,13 +132,20 @@ class LM(BaseLM):
 
     @property
     def supports_response_schema(self) -> bool:
-        provider = self.model.split("/", 1)[0] or "openai"
-        return litelm.supports_response_schema(model=self.model, custom_llm_provider=provider)
+        return litelm.supports_response_schema(model=self.model, custom_llm_provider=self._provider_name)
 
     @property
     def supported_params(self) -> set[str]:
-        provider = self.model.split("/", 1)[0] or "openai"
-        return set(litelm.get_supported_openai_params(model=self.model, custom_llm_provider=provider) or [])
+        params = litelm.get_supported_openai_params(model=self.model, custom_llm_provider=self._provider_name)
+        return set(params) if params else set()
+
+    def _warn_zero_temp_rollout(self, temperature: float | None, rollout_id):
+        if not self._warned_zero_temp_rollout and rollout_id is not None and temperature == 0:
+            warnings.warn(
+                "rollout_id has no effect when temperature=0; set temperature>0 to bypass the cache.",
+                stacklevel=3,
+            )
+            self._warned_zero_temp_rollout = True
 
     def _get_cached_completion_fn(self, completion_fn, cache):
         ignored_args_for_cache_key = ["api_key", "api_base", "base_url"]
@@ -186,15 +191,13 @@ class LM(BaseLM):
                 num_retries=self.num_retries,
                 cache=litelm_cache_args,
             )
-        except litelm.ContextWindowExceededError as e:
-            raise DSPyContextWindowExceededError(
-                message=str(e), model=self.model, llm_provider="litelm"
-            ) from e
+        except LitelmContextWindowExceededError as e:
+            raise ContextWindowExceededError(model=self.model) from e
 
         self._check_truncation(results)
 
-        if not getattr(results, "cache_hit", False) and dspy.settings.usage_tracker and hasattr(results, "usage"):
-            settings.usage_tracker.add_usage(self.model, dict(results.usage))
+        if not getattr(results, "cache_hit", False) and dspy.settings.usage_tracker:
+            settings.usage_tracker.add_usage(self.model, dict(getattr(results, "usage", {})))
         return results
 
     async def aforward(
@@ -229,15 +232,13 @@ class LM(BaseLM):
                 num_retries=self.num_retries,
                 cache=litelm_cache_args,
             )
-        except litelm.ContextWindowExceededError as e:
-            raise DSPyContextWindowExceededError(
-                message=str(e), model=self.model, llm_provider="litelm"
-            ) from e
+        except LitelmContextWindowExceededError as e:
+            raise ContextWindowExceededError(model=self.model) from e
 
         self._check_truncation(results)
 
-        if not getattr(results, "cache_hit", False) and dspy.settings.usage_tracker and hasattr(results, "usage"):
-            settings.usage_tracker.add_usage(self.model, dict(results.usage))
+        if not getattr(results, "cache_hit", False) and dspy.settings.usage_tracker:
+            settings.usage_tracker.add_usage(self.model, dict(getattr(results, "usage", {})))
         return results
 
     def launch(self, launch_kwargs: dict[str, Any] | None = None):
@@ -326,7 +327,8 @@ class LM(BaseLM):
         return {key: getattr(self, key) for key in state_keys} | filtered_kwargs
 
     def _check_truncation(self, results):
-        if self.model_type != "responses" and any(c.finish_reason == "length" for c in results.choices):
+        choices = results.get("choices", []) if isinstance(results, dict) else getattr(results, "choices", [])
+        if self.model_type != "responses" and any(c.finish_reason == "length" for c in choices):
             logger.warning(
                 f"LM response was truncated due to exceeding max_tokens={self.kwargs['max_tokens']}. "
                 "You can inspect the latest LM interactions with `dspy.inspect_history()`. "
@@ -436,14 +438,14 @@ async def alitelm_completion(request: dict[str, Any], num_retries: int, cache: d
     cache = cache or {"no-cache": True, "no-store": True}
     request = dict(request)
     request.pop("rollout_id", None)
-    headers = request.pop("headers", None)
-    stream_completion = _get_stream_completion_fn(request, cache, sync=False)
+    headers = _add_dspy_identifier_to_headers(request.pop("headers", None))
+    stream_completion = _get_stream_completion_fn(request, cache, sync=False, headers=headers)
     if stream_completion is None:
         return await litelm.acompletion(
             cache=cache,
             num_retries=num_retries,
             retry_strategy="exponential_backoff_retry",
-            headers=_add_dspy_identifier_to_headers(headers),
+            headers=headers,
             **request,
         )
 
@@ -518,8 +520,9 @@ def _convert_chat_request_to_responses_request(request: dict[str, Any]):
     """
     request = dict(request)
     if "messages" in request:
-        content_blocks = []
+        input_items = []
         for msg in request.pop("messages"):
+            content_blocks = []
             c = msg.get("content")
             if isinstance(c, str):
                 content_blocks.append({"type": "input_text", "text": c})
@@ -527,7 +530,8 @@ def _convert_chat_request_to_responses_request(request: dict[str, Any]):
                 # Convert each content item from Chat API format to Responses API format
                 for item in c:
                     content_blocks.append(_convert_content_item_to_responses_format(item))
-        request["input"] = [{"role": msg.get("role", "user"), "content": content_blocks}]
+            input_items.append({"role": msg.get("role", "user"), "content": content_blocks})
+        request["input"] = input_items
     # Convert `reasoning_effort` to reasoning format supported by the Responses API
     if "reasoning_effort" in request:
         effort = request.pop("reasoning_effort")

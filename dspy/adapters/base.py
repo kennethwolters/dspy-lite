@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Any, get_origin
+from typing import Any, get_origin
 
 import json_repair
 
@@ -7,6 +7,7 @@ from dspy.adapters.types import History, Type
 from dspy.adapters.types.base_type import split_message_content_for_custom_types
 from dspy.adapters.types.reasoning import Reasoning
 from dspy.adapters.types.tool import Tool, ToolCalls
+from dspy.clients.base_lm import BaseLM
 from dspy.experimental import Citations
 from dspy.signatures.signature import Signature
 from dspy.utils.callback import BaseCallback, with_callbacks
@@ -14,10 +15,25 @@ from dspy.utils.exceptions import AdapterParseError
 
 logger = logging.getLogger(__name__)
 
-if TYPE_CHECKING:
-    from dspy.clients.base_lm import BaseLM
-
 _DEFAULT_NATIVE_RESPONSE_TYPES = [Citations, Reasoning]
+
+
+def _get_tool_call_attr(value: Any, key: str) -> Any:
+    if isinstance(value, dict):
+        return value[key]
+    return getattr(value, key)
+
+
+def normalize_lm_tool_call(tool_call: Any) -> dict[str, Any]:
+    function = _get_tool_call_attr(tool_call, "function")
+    arguments = _get_tool_call_attr(function, "arguments")
+    if isinstance(arguments, str):
+        arguments = json_repair.loads(arguments)
+
+    return {
+        "name": _get_tool_call_attr(function, "name"),
+        "args": arguments or {},
+    }
 
 
 class Adapter:
@@ -67,7 +83,7 @@ class Adapter:
 
     def _call_preprocess(
         self,
-        lm: "BaseLM",
+        lm: BaseLM,
         lm_kwargs: dict[str, Any],
         signature: type[Signature],
         inputs: dict[str, Any],
@@ -87,11 +103,9 @@ class Adapter:
                 tools = inputs[tool_call_input_field_name]
                 tools = tools if isinstance(tools, list) else [tools]
 
-                litelm_tools = []
-                for tool in tools:
-                    litelm_tools.append(tool.format_as_litelm_function_call())
+                lm_tools = [tool.format_as_litelm_function_call() for tool in tools]
 
-                lm_kwargs["tools"] = litelm_tools
+                lm_kwargs["tools"] = lm_tools
 
                 signature_for_native_function_calling = signature.delete(tool_call_output_field_name)
                 signature_for_native_function_calling = signature_for_native_function_calling.delete(
@@ -116,7 +130,7 @@ class Adapter:
         processed_signature: type[Signature],
         original_signature: type[Signature],
         outputs: list[dict[str, Any] | str],
-        lm: "BaseLM",
+        lm: BaseLM,
         lm_kwargs: dict[str, Any],
     ) -> list[dict[str, Any]]:
         values = []
@@ -152,15 +166,7 @@ class Adapter:
                 )
 
             if tool_calls and tool_call_output_field_name:
-                tool_calls = [
-                    {
-                        "name": (v["function"]["name"] if isinstance(v, dict) else v.function.name),
-                        "args": json_repair.loads(
-                            v["function"]["arguments"] if isinstance(v, dict) else v.function.arguments
-                        ),
-                    }
-                    for v in tool_calls
-                ]
+                tool_calls = [normalize_lm_tool_call(tool_call) for tool_call in tool_calls]
                 value[tool_call_output_field_name] = ToolCalls.from_dict_list(tool_calls)
 
             # Parse custom types that does not rely on the `Adapter.parse()` method
@@ -183,7 +189,7 @@ class Adapter:
 
     def __call__(
         self,
-        lm: "BaseLM",
+        lm: BaseLM,
         lm_kwargs: dict[str, Any],
         signature: type[Signature],
         demos: list[dict[str, Any]],
@@ -213,7 +219,7 @@ class Adapter:
 
     async def acall(
         self,
-        lm: "BaseLM",
+        lm: BaseLM,
         lm_kwargs: dict[str, Any],
         signature: type[Signature],
         demos: list[dict[str, Any]],

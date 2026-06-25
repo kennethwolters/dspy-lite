@@ -42,7 +42,7 @@ class Embeddings:
     def forward(self, query: str):
         import dspy
 
-        passages, indices = self.search_fn(query)
+        passages, indices, _scores = self.search_fn(query)
         return dspy.Prediction(passages=passages, indices=indices)
 
     def _batch_forward(self, queries: list[str]):
@@ -86,8 +86,13 @@ class Embeddings:
 
         top_k_indices = np.argsort(-scores, axis=1)[:, : self.k]
         top_indices = candidate_indices[np.arange(len(q_embeds))[:, None], top_k_indices]
+        top_scores = scores[np.arange(len(q_embeds))[:, None], top_k_indices]
 
-        return [([self.corpus[idx] for idx in indices], [idx for idx in indices]) for indices in top_indices]  # noqa: C416
+        results = []
+        for indices, query_scores in zip(top_indices, top_scores, strict=True):
+            passages = [self.corpus[idx] for idx in indices]
+            results.append((passages, [idx for idx in indices], query_scores.tolist()))
+        return results
 
     def _normalize(self, embeddings: "np.ndarray"):
         norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
@@ -221,3 +226,13 @@ class Embeddings:
         instance.search_fn = Unbatchify(instance._batch_forward)
         instance.load(path, embedder)
         return instance
+
+
+class EmbeddingsWithScores(Embeddings):
+    """DSPy Embeddings retriever that returns similarity scores."""
+
+    def forward(self, query: str):
+        import dspy
+
+        passages, indices, scores = self.search_fn(query)
+        return dspy.Prediction(passages=passages, indices=indices, scores=scores)
