@@ -30,7 +30,7 @@ dependencies = [
     "tqdm==4.67.1",
     "requests==2.32.4",
     "pydantic==2.12.4",
-    "litelm>=0.5.0",
+    "litelm==0.5.1",
     "diskcache==5.6.3",
     "json-repair==0.54.2",
     "anyio==4.9.0",
@@ -44,13 +44,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-anthropic = ["litelm[anthropic]"]
+anthropic = ["litelm[anthropic]==0.5.1"]
 weaviate = ["weaviate-client==4.5.7"]
 mcp = ["mcp==1.9.4; python_version >= '3.10'"]
 langchain = ["langchain_core==1.0.4"]
 optuna = ["optuna==4.4.0"]
-bedrock = ["litelm[bedrock]"]
-cloudflare = ["litelm[cloudflare]"]
+bedrock = ["litelm[bedrock]==0.5.1"]
+cloudflare = ["litelm[cloudflare]==0.5.1"]
 embeddings = ["numpy==2.2.6"]  # last 2.x line supporting Python 3.10
 all = ["dspy-lite[anthropic,bedrock,cloudflare,embeddings]"]
 dev = [
@@ -63,7 +63,7 @@ dev = [
     "pillow==12.0.0",
     "datamodel_code_generator==0.31.1",
     "build==1.2.2.post1",
-    "litelm>=0.5.0",
+    "litelm==0.5.1",
 ]
 test_extras = [
     "mcp==1.9.4; python_version >= '3.10'",
@@ -90,7 +90,7 @@ filterwarnings = []
 
 [tool.uv.sources]
 # Use the maintainer-owned git source for local resolution.
-litelm = { git = "https://github.com/kennethwolters/litelm.git" }
+litelm = { git = "https://github.com/kennethwolters/litelm.git", tag = "v0.5.1" }
 
 [tool.ruff]
 include = ["dspy/**/*.py", "tests/**/*.py"]

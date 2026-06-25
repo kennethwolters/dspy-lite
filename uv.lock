@@ -739,11 +739,11 @@ requires-dist = [
     { name = "jsonschema", specifier = "==4.26.0" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = "==1.0.4" },
     { name = "langchain-core", marker = "extra == 'test-extras'", specifier = "==1.0.4" },
-    { name = "litelm", git = "https://github.com/kennethwolters/litelm.git" },
-    { name = "litelm", marker = "extra == 'dev'", git = "https://github.com/kennethwolters/litelm.git" },
-    { name = "litelm", extras = ["anthropic"], marker = "extra == 'anthropic'", git = "https://github.com/kennethwolters/litelm.git" },
-    { name = "litelm", extras = ["bedrock"], marker = "extra == 'bedrock'", git = "https://github.com/kennethwolters/litelm.git" },
-    { name = "litelm", extras = ["cloudflare"], marker = "extra == 'cloudflare'", git = "https://github.com/kennethwolters/litelm.git" },
+    { name = "litelm", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.1" },
+    { name = "litelm", marker = "extra == 'dev'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.1" },
+    { name = "litelm", extras = ["anthropic"], marker = "extra == 'anthropic'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.1" },
+    { name = "litelm", extras = ["bedrock"], marker = "extra == 'bedrock'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.1" },
+    { name = "litelm", extras = ["cloudflare"], marker = "extra == 'cloudflare'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.1" },
     { name = "mcp", marker = "python_full_version >= '3.10' and extra == 'mcp'", specifier = "==1.9.4" },
     { name = "mcp", marker = "python_full_version >= '3.10' and extra == 'test-extras'", specifier = "==1.9.4" },
     { name = "numpy", marker = "extra == 'embeddings'", specifier = "==2.2.6" },
@@ -1411,8 +1411,8 @@ wheels = [
 
 [[package]]
 name = "litelm"
-version = "0.4.0"
-source = { git = "https://github.com/kennethwolters/litelm.git#5dea6814aa437b3153c1adc87142c80d57f85a4f" }
+version = "0.5.1"
+source = { git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.1#39e41fd622512ab74b077336206096ef4a5da95a" }
 dependencies = [
     { name = "httpx" },
     { name = "openai" },
