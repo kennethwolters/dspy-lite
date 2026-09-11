@@ -49,7 +49,7 @@ anthropic = ["litelm[anthropic]==0.5.1"]
 weaviate = ["weaviate-client==4.5.7"]
 mcp = ["mcp==1.9.4; python_version >= '3.10'"]
 langchain = ["langchain_core==1.0.4"]
-optuna = ["optuna==4.4.0"]
+optuna = ["optuna==5.0.0"]
 bedrock = ["litelm[bedrock]==0.5.1"]
 cloudflare = ["litelm[cloudflare]==0.5.1"]
 embeddings = [
@@ -75,7 +75,7 @@ test_extras = [
     "mcp==1.9.4; python_version >= '3.10'",
     "datasets==3.6.0",
     "pandas==2.3.3",
-    "optuna==4.4.0",
+    "optuna==5.0.0",
     "langchain_core==1.0.4",
 ]
 
