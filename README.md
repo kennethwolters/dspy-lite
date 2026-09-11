@@ -16,6 +16,8 @@ DSPy with [litellm](https://github.com/BerriAI/litellm) replaced by [litelm](htt
 pip install dspy-lite
 ```
 
+Supported Python versions: 3.10 through 3.14.
+
 With provider extras:
 
 ```bash
