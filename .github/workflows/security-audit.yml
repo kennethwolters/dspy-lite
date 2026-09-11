@@ -29,7 +29,7 @@ jobs:
           jq -e '[.dependencies[].vulns[] | select(.id != "PYSEC-2026-2447")] | length == 0' core-audit.json
       - name: Upload core audit
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: core-dependency-audit
           path: core-audit.json
@@ -56,7 +56,7 @@ jobs:
           jq -e '[.dependencies[].vulns[] | select(.id != "PYSEC-2026-2447")] | length == 0' optional-audit.json
       - name: Upload optional audit
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: optional-dependency-audit
           path: optional-audit.json
