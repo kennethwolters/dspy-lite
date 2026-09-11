@@ -98,7 +98,7 @@ filterwarnings = []
 litelm = { git = "https://github.com/kennethwolters/litelm.git", tag = "v0.5.1" }
 
 [tool.ruff]
-include = ["dspy/**/*.py", "tests/**/*.py"]
+include = ["dspy/**/*.py", "scripts/**/*.py", "tests/**/*.py"]
 exclude = [
   "dspy/__metadata__.py",
   "tests/reliability/*.py",
