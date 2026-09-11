@@ -526,14 +526,10 @@ def test_restricted_and_unrestricted_share_wire_format(tmp_path):
     shared_dir = tmp_path / "shared"
     request = {"model": "test", "prompt": "shared"}
 
-    with pytest.warns(RuntimeWarning, match="arbitrary code"):
-        unrestricted = Cache(
-            enable_disk_cache=True,
-            enable_memory_cache=False,
-            disk_cache_dir=shared_dir,
-            disk_size_limit_bytes=1024 * 1024,
-            restrict_pickle=False,
-        )
+    unrestricted = Cache(
+        enable_disk_cache=True, enable_memory_cache=False,
+        disk_cache_dir=shared_dir, disk_size_limit_bytes=1024 * 1024,
+    )
     unrestricted.put(request, {"value": "hello"})
     unrestricted.disk_cache.close()
 
@@ -572,3 +568,24 @@ def test_safe_types_rejects_non_types(tmp_path):
             restrict_pickle=True,
             safe_types=["not_a_type"],
         )
+
+
+class _StrictProviderResponse(pydantic.BaseModel):
+    """Mimics strict provider SDK models (e.g. litelm's ResponsesAPIResponse)."""
+
+    model_config = pydantic.ConfigDict(extra="forbid")
+
+    output: list[dict]
+    usage: dict
+
+
+def test_prepare_cached_response_marks_strict_models_as_cache_hit(cache):
+    response = _StrictProviderResponse(output=[{"type": "message"}], usage={"total_tokens": 3})
+
+    prepared = cache._prepare_cached_response(response)
+
+    assert prepared.cache_hit is True
+    assert prepared.usage == {}
+    # The original response is not mutated.
+    assert getattr(response, "cache_hit", False) is False
+    assert response.usage == {"total_tokens": 3}

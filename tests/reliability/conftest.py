@@ -57,7 +57,7 @@ def configure_model(request):
     else:
         pytest.skip(
             f"Skipping test because no reliability testing YAML configuration was found"
-            f" for model {model_name}, or the YAML configuration is missing litelm parameters"
+            f" for model {model_name}, or the YAML configuration is missing LiteLM parameters"
             f" for this model ('litelm_params' section of conf file is missing)."
         )
 

@@ -1,16 +1,23 @@
+from __future__ import annotations
+
 import json
 import os
 from typing import Any
 
-try:
-    import numpy as np
-except ImportError:
-    np = None
-
+from dspy.utils.lazy_import import require
 from dspy.utils.unbatchify import Unbatchify
+
+np = require("numpy")
 
 
 class Embeddings:
+    """DSPy Embeddings retriever.
+
+    This class retrieves the top-k most similar passages from a corpus using embedding-based similarity search.
+    For large corpora, a FAISS index is built for fast approximate candidate retrieval, followed by exact
+    re-ranking. For small corpora, brute-force search is used.
+    """
+
     def __init__(
         self,
         corpus: list[str],
@@ -21,8 +28,6 @@ class Embeddings:
         brute_force_threshold: int = 20_000,
         normalize: bool = True,
     ):
-        if np is None:
-            raise ImportError("numpy is required for embeddings. Install with: pip install dspy-lite[embeddings]")
         assert cache is False, "Caching is not supported for embeddings-based retrievers"
 
         self.embedder = embedder
@@ -40,6 +45,14 @@ class Embeddings:
         return self.forward(query)
 
     def forward(self, query: str):
+        """Search for the top-k passages most similar to the query.
+
+        Args:
+            query (str): The search query string
+
+        Returns:
+            dspy.Prediction: A prediction containing passages and their corpus indices.
+        """
         import dspy
 
         passages, indices, _scores = self.search_fn(query)
@@ -77,10 +90,10 @@ class Embeddings:
 
         return index
 
-    def _faiss_search(self, query_embeddings: "np.ndarray", num_candidates: int):
+    def _faiss_search(self, query_embeddings: np.ndarray, num_candidates: int):
         return self.index.search(query_embeddings, num_candidates)[1]
 
-    def _rerank_and_predict(self, q_embeds: "np.ndarray", candidate_indices: "np.ndarray"):
+    def _rerank_and_predict(self, q_embeds: np.ndarray, candidate_indices: np.ndarray):
         candidate_embeddings = self.corpus_embeddings[candidate_indices]
         scores = np.einsum("qd,qkd->qk", q_embeds, candidate_embeddings)
 
@@ -91,10 +104,10 @@ class Embeddings:
         results = []
         for indices, query_scores in zip(top_indices, top_scores, strict=True):
             passages = [self.corpus[idx] for idx in indices]
-            results.append((passages, [idx for idx in indices], query_scores.tolist()))
+            results.append((passages, indices.tolist(), query_scores.tolist()))
         return results
 
-    def _normalize(self, embeddings: "np.ndarray"):
+    def _normalize(self, embeddings: np.ndarray):
         norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
         return embeddings / np.maximum(norms, 1e-10)
 
@@ -177,8 +190,6 @@ class Embeddings:
         self.embedder = embedder
 
         # Load embeddings
-        if np is None:
-            raise ImportError("numpy is required for embeddings. Install with: pip install dspy-lite[embeddings]")
         self.corpus_embeddings = np.load(embeddings_path)
 
         # Load FAISS index if it was saved and FAISS is available
@@ -229,9 +240,21 @@ class Embeddings:
 
 
 class EmbeddingsWithScores(Embeddings):
-    """DSPy Embeddings retriever that returns similarity scores."""
+    """DSPy EmbeddingsWithScores retriever.
+
+    This class extends the Embeddings retriever to also return similarity scores alongside passages and indices.
+    Similarity scores enable downstream such as thresholding and re-ranking.
+    """
 
     def forward(self, query: str):
+        """Search for the top-k passages most similar to the query.
+
+        Args:
+            query (str): The search query string.
+
+        Returns:
+            dspy.Prediction: A prediction containing passages, indices, and similarity scores.
+        """
         import dspy
 
         passages, indices, scores = self.search_fn(query)

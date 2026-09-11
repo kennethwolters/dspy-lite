@@ -1,10 +1,8 @@
-try:
-    import numpy as np
-except ImportError:
-    np = None
-
 from dspy.clients import Embedder
 from dspy.primitives import Example
+from dspy.utils.lazy_import import require
+
+np = require("numpy")
 
 
 class KNN:
@@ -39,8 +37,6 @@ class KNN:
             similar_examples = knn(input="hello")
             ```
         """
-        if np is None:
-            raise ImportError("numpy is required for KNN. Install with: pip install dspy-lite[embeddings]")
         self.k = k
         self.trainset = trainset
         self.embedding = vectorizer

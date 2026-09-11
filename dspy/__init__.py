@@ -3,11 +3,44 @@ from dspy.primitives import *
 from dspy.retrievers import *
 from dspy.signatures import *
 from dspy.teleprompt import *
+from dspy.predict.flex import Flex
 
 from dspy.evaluate import Evaluate  # isort: skip
 from dspy.clients import *  # isort: skip
-from dspy.adapters import Adapter, ChatAdapter, JSONAdapter, XMLAdapter, TwoStepAdapter, Image, Audio, File, History, Type, Tool, ToolCalls, Code, Reasoning  # isort: skip
-from dspy.utils.exceptions import ContextWindowExceededError
+from dspy.adapters import Adapter, ChatAdapter, JSONAdapter, XMLAdapter, TwoStepAdapter, Image, Audio, File, History, Type, Tool, ToolCalls, ToolCallResults, Code, Reasoning  # isort: skip
+from dspy.core import (  # isort: skip
+    Assistant,
+    Developer,
+    LMConfig,
+    LMMessage,
+    LMRequest,
+    LMResponse,
+    System,
+    ToolCall,
+    ToolResult,
+    User,
+)
+from dspy.primitives.sandbox_serializable import SandboxSerializable  # isort: skip
+from dspy.utils.exceptions import (
+    AdapterParseError,
+    ContextWindowExceededError,
+    DSPyError,
+    LMAuthError,
+    LMBillingError,
+    LMConfigurationError,
+    LMError,
+    LMInvalidRequestError,
+    LMNotConfiguredError,
+    LMProviderError,
+    LMRateLimitError,
+    LMServerError,
+    LMTimeoutError,
+    LMTransportError,
+    LMUnexpectedError,
+    LMUnsupportedFeatureError,
+    LMUnsupportedModelError,
+    is_retryable_lm_error,
+)
 from dspy.utils.logging_utils import configure_dspy_loggers, disable_logging, enable_logging
 from dspy.utils.asyncify import asyncify
 from dspy.utils.syncify import syncify
@@ -18,7 +51,15 @@ from dspy.utils.usage_tracker import track_usage
 from dspy.dsp.utils.settings import settings
 from dspy.dsp.colbertv2 import ColBERTv2
 from dspy.clients import DSPY_CACHE
-from dspy.__metadata__ import __author__, __author_email__, __description__, __name__, __package_name__, __url__, __version__
+from dspy.__metadata__ import (
+    __author__,
+    __author_email__,
+    __description__,
+    __name__,
+    __package_name__,
+    __url__,
+    __version__,
+)
 
 configure_dspy_loggers(__name__)
 

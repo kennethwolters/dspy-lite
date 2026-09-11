@@ -1,19 +1,19 @@
+from __future__ import annotations
+
 import random
 from collections import defaultdict
 from typing import Any
 
-try:
-    import numpy as np
-except ImportError:
-    np = None
-
 from dspy.adapters.chat_adapter import FieldInfoWithName, field_header_pattern
-from dspy.clients.lm import LM
+from dspy.clients.base_lm import BaseLM
 from dspy.dsp.utils.utils import dotdict
 from dspy.signatures.field import OutputField
+from dspy.utils.lazy_import import require
+
+np = require("numpy")
 
 
-class DummyLM(LM):
+class DummyLM(BaseLM):
     """Dummy language model for unit testing purposes.
 
     Three modes of operation:
@@ -68,6 +68,8 @@ class DummyLM(LM):
     ```
 
     """
+
+    forward_contract = "legacy"
 
     def __init__(
         self,
@@ -197,9 +199,7 @@ class DummyVectorizer:
             h %= self.P
         return h % self.max_length
 
-    def __call__(self, texts: list[str]):
-        if np is None:
-            raise ImportError("numpy is required for DummyVectorizer. Install with: pip install dspy-lite[embeddings]")
+    def __call__(self, texts: list[str]) -> np.ndarray:
         vecs = []
         for text in texts:
             grams = [text[i : i + self.n_gram] for i in range(len(text) - self.n_gram + 1)]

@@ -1,13 +1,16 @@
+from __future__ import annotations
+
 from typing import Any, Callable
 
-import litelm
-
-try:
-    import numpy as np
-except ImportError:
-    np = None
-
+from dspy.clients._litelm import get_litelm
 from dspy.clients.cache import request_cache
+from dspy.utils.lazy_import import require
+
+np = require("numpy")
+
+
+def _get_litelm():
+    return get_litelm(feature="dspy.Embedder")
 
 
 class Embedder:
@@ -108,15 +111,13 @@ class Embedder:
         return input_batches, caching, merged_kwargs, is_single_input
 
     def _postprocess(self, embeddings_list, is_single_input):
-        if np is None:
-            raise ImportError("numpy is required for embeddings. Install with: pip install dspy-lite[embeddings]")
         embeddings = np.array(embeddings_list, dtype=np.float32)
         if is_single_input:
             return embeddings[0]
         else:
             return np.array(embeddings, dtype=np.float32)
 
-    def __call__(self, inputs: str | list[str], batch_size: int | None = None, caching: bool | None = None, **kwargs: dict[str, Any]) -> "np.ndarray":
+    def __call__(self, inputs: str | list[str], batch_size: int | None = None, caching: bool | None = None, **kwargs: dict[str, Any]) -> np.ndarray:
         """Compute embeddings for the given inputs.
 
         Args:
@@ -155,8 +156,8 @@ class Embedder:
 
 def _compute_embeddings(model, batch_inputs, caching=False, **kwargs):
     if isinstance(model, str):
-        caching = caching and litelm.cache is not None
-        embedding_response = litelm.embedding(model=model, input=batch_inputs, caching=caching, **kwargs)
+        caching = caching and _get_litelm().cache is not None
+        embedding_response = _get_litelm().embedding(model=model, input=batch_inputs, caching=caching, **kwargs)
         return [data["embedding"] for data in embedding_response.data]
     elif callable(model):
         return model(batch_inputs, **kwargs)
@@ -171,8 +172,8 @@ def _cached_compute_embeddings(model, batch_inputs, caching=True, **kwargs):
 
 async def _acompute_embeddings(model, batch_inputs, caching=False, **kwargs):
     if isinstance(model, str):
-        caching = caching and litelm.cache is not None
-        embedding_response = await litelm.aembedding(model=model, input=batch_inputs, caching=caching, **kwargs)
+        caching = caching and _get_litelm().cache is not None
+        embedding_response = await _get_litelm().aembedding(model=model, input=batch_inputs, caching=caching, **kwargs)
         return [data["embedding"] for data in embedding_response.data]
     elif callable(model):
         return model(batch_inputs, **kwargs)

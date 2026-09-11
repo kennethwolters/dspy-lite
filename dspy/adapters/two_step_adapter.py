@@ -1,12 +1,15 @@
 from typing import Any
 
-from dspy.adapters.base import Adapter, normalize_lm_tool_call
+import json_repair
+
+from dspy.adapters.base import Adapter
 from dspy.adapters.chat_adapter import ChatAdapter
 from dspy.adapters.types import ToolCalls
 from dspy.adapters.utils import get_field_description_string
 from dspy.clients.base_lm import BaseLM
 from dspy.signatures.field import InputField
 from dspy.signatures.signature import Signature, make_signature
+from dspy.utils.exceptions import AdapterParseError, LMError
 
 """
 NOTE/TODO/FIXME:
@@ -98,8 +101,15 @@ class TwoStepAdapter(Adapter):
             )
             return parsed_result[0]
 
+        except LMError:
+            raise
         except Exception as e:
-            raise ValueError(f"Failed to parse response from the original completion: {completion}") from e
+            raise AdapterParseError(
+                adapter_name="TwoStepAdapter",
+                signature=signature,
+                lm_response=completion,
+                message=f"Failed to parse response from the original completion: {e}",
+            ) from e
 
     async def acall(
         self,
@@ -139,11 +149,24 @@ class TwoStepAdapter(Adapter):
                 )
                 value = value[0]
 
+            except LMError:
+                raise
             except Exception as e:
-                raise ValueError(f"Failed to parse response from the original completion: {output}") from e
+                raise AdapterParseError(
+                    adapter_name="TwoStepAdapter",
+                    signature=signature,
+                    lm_response=str(output),
+                    message=f"Failed to parse response from the original completion: {e}",
+                ) from e
 
             if tool_calls and tool_call_output_field_name:
-                tool_calls = [normalize_lm_tool_call(tool_call) for tool_call in tool_calls]
+                tool_calls = [
+                    {
+                        "name": v["function"]["name"],
+                        "args": json_repair.loads(v["function"]["arguments"]),
+                    }
+                    for v in tool_calls
+                ]
                 value[tool_call_output_field_name] = ToolCalls.from_dict_list(tool_calls)
 
             if output_logprobs is not None:
