@@ -55,6 +55,10 @@ file = dspy.File.from_path("./document.pdf")
 
 Applications must validate or allowlist untrusted URLs before calling `from_url()`; explicit downloads do not provide SSRF filtering.
 
+### Disk-cache safety
+
+Disk caches use restricted pickle deserialization by default. Custom cached classes must be registered with `dspy.configure_cache(safe_types=[...])`. Setting `restrict_pickle=False` restores unrestricted pickle compatibility, emits a warning, and must only be used when the cache directory is fully trusted. Unsafe or incompatible legacy entries are treated as cache misses rather than retried with unrestricted deserialization.
+
 ## What changed from DSPy
 
 | | DSPy | dspy-lite |

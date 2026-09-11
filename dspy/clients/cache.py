@@ -3,6 +3,7 @@ import inspect
 import logging
 import os
 import threading
+import warnings
 from functools import wraps
 from hashlib import sha256
 from typing import Any
@@ -52,7 +53,7 @@ class Cache:
         disk_cache_dir: str | None,
         disk_size_limit_bytes: int | None = 1024 * 1024 * 10,
         memory_max_entries: int = 1000000,
-        restrict_pickle: bool = False,
+        restrict_pickle: bool = True,
         safe_types: list[type[Any]] | None = None,
     ):
         """
@@ -62,8 +63,9 @@ class Cache:
             disk_cache_dir: The directory where the disk cache is stored.
             disk_size_limit_bytes: The maximum size of the disk cache (in bytes).
             memory_max_entries: The maximum size of the in-memory cache (in number of items).
-            restrict_pickle: When True, restrict pickle deserialization to a known-safe
-                set of types. When False (default), use unrestricted pickle.
+            restrict_pickle: When True (default), restrict pickle deserialization to a known-safe
+                set of types. Setting this to False allows arbitrary code execution from cache entries
+                and must only be used with a fully trusted cache directory.
             safe_types: Additional types to allow when restrict_pickle is True.
         """
 
@@ -79,6 +81,13 @@ class Cache:
         else:
             self.memory_cache = {}
         if self.enable_disk_cache:
+            if not restrict_pickle:
+                warnings.warn(
+                    "Unrestricted disk-cache deserialization can execute arbitrary code. "
+                    "Only use restrict_pickle=False with a fully trusted cache directory.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
             fanout_kwargs = dict(
                 directory=self.disk_cache_dir,
                 shards=16,

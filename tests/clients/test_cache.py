@@ -23,6 +23,15 @@ class CacheValidationDataclass:
     value: int
 
 
+class MaliciousCacheValue:
+    def __init__(self, marker_path):
+        self.marker_path = marker_path
+
+    def __reduce__(self):
+        command = f"printf exploited > '{self.marker_path}'"
+        return os.system, (command,)
+
+
 @pytest.fixture
 def cache_config(tmp_path):
     """Default cache configuration."""
@@ -32,6 +41,7 @@ def cache_config(tmp_path):
         "disk_cache_dir": str(tmp_path),
         "disk_size_limit_bytes": 1024 * 1024,  # 1MB
         "memory_max_entries": 100,
+        "safe_types": [DummyResponse],
     }
 
 
@@ -395,6 +405,31 @@ def test_cache_init_with_disk_disabled_and_none_dir():
 # -- restrict_pickle tests --
 
 
+def test_default_disk_cache_rejects_malicious_pickle(tmp_path):
+    cache_dir = tmp_path / "cache"
+    marker = tmp_path / "pickle-executed"
+    request = {"model": "test", "prompt": "malicious-entry"}
+
+    with pytest.warns(RuntimeWarning, match="arbitrary code"):
+        writer = Cache(
+            enable_disk_cache=True,
+            enable_memory_cache=False,
+            disk_cache_dir=cache_dir,
+            restrict_pickle=False,
+        )
+    writer.put(request, MaliciousCacheValue(marker))
+    writer.disk_cache.close()
+
+    default_reader = Cache(
+        enable_disk_cache=True,
+        enable_memory_cache=False,
+        disk_cache_dir=cache_dir,
+    )
+
+    assert default_reader.get(request) is None
+    assert not marker.exists()
+
+
 def test_model_response_roundtrip_in_restricted_mode(restricted_cache):
     from litelm import ModelResponse
 
@@ -491,10 +526,14 @@ def test_restricted_and_unrestricted_share_wire_format(tmp_path):
     shared_dir = tmp_path / "shared"
     request = {"model": "test", "prompt": "shared"}
 
-    unrestricted = Cache(
-        enable_disk_cache=True, enable_memory_cache=False,
-        disk_cache_dir=shared_dir, disk_size_limit_bytes=1024 * 1024,
-    )
+    with pytest.warns(RuntimeWarning, match="arbitrary code"):
+        unrestricted = Cache(
+            enable_disk_cache=True,
+            enable_memory_cache=False,
+            disk_cache_dir=shared_dir,
+            disk_size_limit_bytes=1024 * 1024,
+            restrict_pickle=False,
+        )
     unrestricted.put(request, {"value": "hello"})
     unrestricted.disk_cache.close()
 
