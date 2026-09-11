@@ -9,7 +9,7 @@ description = "DSPy with litellm replaced by litelm and numpy made optional"
 readme = "README.md"
 authors = [{ name = "Kenneth Wolters" }]
 license = {file = "LICENSE"}
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.15"
 keywords = ["llm", "dspy", "ai", "prompt-optimization", "language-models"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -21,6 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
@@ -51,7 +52,11 @@ langchain = ["langchain_core==1.0.4"]
 optuna = ["optuna==4.4.0"]
 bedrock = ["litelm[bedrock]==0.5.1"]
 cloudflare = ["litelm[cloudflare]==0.5.1"]
-embeddings = ["numpy==2.2.6"]  # last 2.x line supporting Python 3.10
+embeddings = [
+    "numpy==2.2.6; python_version == '3.10'",
+    "numpy==2.4.6; python_version == '3.11'",
+    "numpy==2.5.3; python_version >= '3.12' and python_version < '3.15'",
+]
 all = ["dspy-lite[anthropic,bedrock,cloudflare,embeddings]"]
 dev = [
     "pytest==8.4.2",
