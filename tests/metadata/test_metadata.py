@@ -8,7 +8,7 @@ def test_metadata():
     assert dspy.__name__ == "dspy"
     assert dspy.__package_name__ == "dspy-lite"
     assert re.match(r"\d+\.\d+\.\d+", dspy.__version__)
-    assert dspy.__version__ == "3.2.1.post1"
+    assert dspy.__version__ == "3.2.1.post2"
     assert dspy.__author__ == "Kenneth Wolters"
     assert dspy.__url__ == "https://github.com/kennethwolters/dspy-lite"
     assert dspy.__description__ == "DSPy with litellm replaced by litelm and numpy made optional"

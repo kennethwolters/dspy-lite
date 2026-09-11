@@ -706,7 +706,7 @@ wheels = [
 
 [[package]]
 name = "dspy-lite"
-version = "3.2.1.post1"
+version = "3.2.1.post2"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },
