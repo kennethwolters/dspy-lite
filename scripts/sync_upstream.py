@@ -475,15 +475,16 @@ def verify_static(worktree: Path) -> list[Finding]:
 
     pyproject = worktree / "pyproject.toml"
     if pyproject.is_file():
-        import tomllib
-
-        project = tomllib.loads(pyproject.read_text()).get("project", {})
-        requirements = list(project.get("dependencies", []))
-        for values in project.get("optional-dependencies", {}).values():
-            requirements.extend(values)
-        for requirement in requirements:
-            if re.match(r"(?i)^litellm(?:\W|$)", requirement):
-                findings.append(Finding("error", "litellm-dependency", f"Forbidden dependency: {requirement}", "pyproject.toml"))
+        # Keep this maintenance tool stdlib-only on Python 3.10, where tomllib is unavailable.
+        dependency_pattern = re.compile(
+            r"(?im)^[^#\n]*[\"']litellm(?:\[[^\"']+\])?\s*(?:[<>=!~;]|[\"'])"
+        )
+        pyproject_content = pyproject.read_text()
+        for match in dependency_pattern.finditer(pyproject_content):
+            line = pyproject_content.count("\n", 0, match.start()) + 1
+            findings.append(
+                Finding("error", "litellm-dependency", f"Forbidden LiteLLM dependency at line {line}", "pyproject.toml")
+            )
 
     cache_path = worktree / "dspy/clients/cache.py"
     clients_init = worktree / "dspy/clients/__init__.py"
