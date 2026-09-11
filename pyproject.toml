@@ -28,27 +28,27 @@ dependencies = [
     "openai==1.88.0",
     "regex==2025.11.3",
     "orjson==3.12.0",
-    "tqdm==4.67.1",
+    "tqdm==4.70.0",
     "requests==2.34.2",
-    "pydantic==2.12.4",
+    "pydantic==2.13.5",
     "litelm==0.5.1",
     "diskcache==5.6.3",
     "json-repair==0.63.4",
-    "anyio==4.9.0",
-    "asyncer==0.0.8",
+    "anyio==4.15.1",
+    "asyncer==0.0.18",
     "cachetools==6.1.0",
     "xxhash==3.6.0",
     "cloudpickle==3.1.2",
     "jsonschema==4.26.0",
-    "gepa[dspy]==0.0.27",
-    "typeguard==4.4.3",
+    "gepa[dspy]==0.1.4",
+    "typeguard==4.6.0",
 ]
 
 [project.optional-dependencies]
 anthropic = ["litelm[anthropic]==0.5.1"]
-weaviate = ["weaviate-client==4.5.7"]
+weaviate = ["weaviate-client==4.23.1"]
 mcp = ["mcp==1.9.4; python_version >= '3.10'"]
-langchain = ["langchain_core==1.0.4"]
+langchain = ["langchain_core==1.6.2"]
 optuna = ["optuna==4.4.0"]
 bedrock = ["litelm[bedrock]==0.5.1"]
 cloudflare = ["litelm[cloudflare]==0.5.1"]
@@ -61,13 +61,13 @@ all = ["dspy-lite[anthropic,bedrock,cloudflare,embeddings]"]
 dev = [
     "pytest==8.4.2",
     "pytest-timeout==2.4.0",
-    "pytest-mock==3.14.1",
-    "pytest-asyncio==1.0.0",
+    "pytest-mock==3.15.1",
+    "pytest-asyncio==1.4.0",
     "ruff==0.16.7",
-    "pre-commit==4.2.0",
-    "pillow==12.0.0",
-    "datamodel_code_generator==0.31.1",
-    "build==1.2.2.post1",
+    "pre-commit==4.6.2",
+    "pillow==12.3.0",
+    "datamodel_code_generator==0.77.0",
+    "build==1.6.0",
     "pip-audit==2.10.1",
     "litelm==0.5.1",
 ]
@@ -76,7 +76,7 @@ test_extras = [
     "datasets==3.6.0",
     "pandas==2.3.3",
     "optuna==4.4.0",
-    "langchain_core==1.0.4",
+    "langchain_core==1.6.2",
 ]
 
 [tool.hatch.build.targets.wheel]
