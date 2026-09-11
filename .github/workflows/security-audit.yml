@@ -1,0 +1,63 @@
+name: Dependency security audit
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    name: Core runtime dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4
+        with:
+          version: "0.12.5"
+      - run: uv export --locked --no-dev --no-hashes --no-emit-project --output-file core-requirements.txt
+      - name: Audit core runtime graph
+        run: |
+          uv run --locked --extra dev pip-audit \
+            --requirement core-requirements.txt \
+            --format json \
+            --output core-audit.json \
+            --progress-spinner off || test -s core-audit.json
+          jq -e '[.dependencies[].vulns[] | select(.id != "PYSEC-2026-2447")] | length == 0' core-audit.json
+      - name: Upload core audit
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: core-dependency-audit
+          path: core-audit.json
+          if-no-files-found: warn
+
+  optional:
+    name: Optional runtime dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4
+        with:
+          version: "0.12.5"
+      - run: uv export --locked --all-extras --no-dev --no-hashes --no-emit-project --output-file optional-requirements.txt
+      - name: Audit optional runtime graph
+        run: |
+          uv run --locked --extra dev pip-audit \
+            --requirement optional-requirements.txt \
+            --format json \
+            --output optional-audit.json \
+            --progress-spinner off || test -s optional-audit.json
+          jq -e '[.dependencies[].vulns[] | select(.id != "PYSEC-2026-2447")] | length == 0' optional-audit.json
+      - name: Upload optional audit
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: optional-dependency-audit
+          path: optional-audit.json
+          if-no-files-found: warn

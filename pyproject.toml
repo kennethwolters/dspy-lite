@@ -68,6 +68,7 @@ dev = [
     "pillow==12.0.0",
     "datamodel_code_generator==0.31.1",
     "build==1.2.2.post1",
+    "pip-audit==2.10.1",
     "litelm==0.5.1",
 ]
 test_extras = [
