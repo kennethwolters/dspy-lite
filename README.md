@@ -40,6 +40,21 @@ print(result.answer)
 
 Everything from DSPy works -- the import is still `import dspy`.
 
+### Loading images, audio, and files
+
+Resource validation never reads the filesystem or network implicitly. Load resources explicitly:
+
+```python
+image = dspy.Image.from_path("./image.png")
+image = dspy.Image.from_url("https://example.com/image.png")  # explicit network request
+image_reference = dspy.Image("https://example.com/image.png")  # provider-fetched URL; no local request
+
+audio = dspy.Audio.from_path("./audio.wav")
+file = dspy.File.from_path("./document.pdf")
+```
+
+Applications must validate or allowlist untrusted URLs before calling `from_url()`; explicit downloads do not provide SSRF filtering.
+
 ## What changed from DSPy
 
 | | DSPy | dspy-lite |
