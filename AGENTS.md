@@ -24,7 +24,7 @@
 ## Development Commands
 
 - Check lock consistency: `uv lock --check`
-- Lint package code: `uvx ruff check dspy/`
+- Lint package code: `uv run --locked --extra dev ruff check dspy/`
 - Run the CI-shaped test suite: `uv run --locked --extra dev --extra embeddings pytest tests/ -x --timeout=30 -q`
 - For focused work, run the narrowest relevant pytest target first, then the CI-shaped suite before publishing code changes.
 
