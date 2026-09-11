@@ -1,33 +1,15 @@
+from __future__ import annotations
+
 import logging
-import math
 import random
 from typing import Any, Callable
 
 import dspy
-
-
-def _percentile(data, pct):
-    """Linear interpolation percentile, matching numpy default."""
-    s = sorted(data)
-    k = (len(s) - 1) * pct / 100
-    f = int(k)
-    c = f + 1
-    if c >= len(s):
-        return s[-1]
-    return s[f] + (k - f) * (s[c] - s[f])
-
-
-def _poisson(rng, lam):
-    """Knuth's algorithm for Poisson sampling."""
-    L = math.exp(-lam)
-    k, p = 0, 1.0
-    while True:
-        k += 1
-        p *= rng.random()
-        if p <= L:
-            return k - 1
 from dspy.teleprompt.simba_utils import append_a_demo, append_a_rule, prepare_models_for_resampling, wrap_program
 from dspy.teleprompt.teleprompt import Teleprompter
+from dspy.utils.lazy_import import require
+
+np = require("numpy")
 
 logger = logging.getLogger(__name__)
 
@@ -47,12 +29,12 @@ class SIMBA(Teleprompter):
     def __init__(
         self,
         *,
-        metric: Callable[["dspy.Example", dict[str, Any]], float],
+        metric: Callable[[dspy.Example, dict[str, Any]], float],
         bsize: int = 32,
         num_candidates: int = 6,
         max_steps: int = 8,
         max_demos: int = 4,
-        prompt_model: "dspy.LM | None" = None,
+        prompt_model: dspy.LM | None = None,
         teacher_settings: dict | None = None,
         demo_input_field_maxlen: int = 100_000,
         num_threads: int | None = None,
@@ -103,11 +85,11 @@ class SIMBA(Teleprompter):
 
     def compile(
         self,
-        student: "dspy.Module",
+        student: dspy.Module,
         *,
-        trainset: list["dspy.Example"],
+        trainset: list[dspy.Example],
         seed: int = 0
-    ) -> "dspy.Module":
+    ) -> dspy.Module:
         """
         Compile and optimize the student module using SIMBA.
         
@@ -124,7 +106,7 @@ class SIMBA(Teleprompter):
 
         # Initialize RNG
         rng = random.Random(seed)
-        rng_poisson = random.Random(seed)
+        rng_np = np.random.default_rng(seed)
 
         programs = []
         program_scores = {}
@@ -152,7 +134,7 @@ class SIMBA(Teleprompter):
 
             # Unnormalized weights
             scores = [calc_average_score(idx) for idx in program_idxs]
-            exps = [math.exp(s / temperature) for s in scores]
+            exps = [np.exp(s / temperature) for s in scores]
             sum_exps = sum(exps)
             if sum_exps <= 0:
                 # Fallback: uniform if all exps are zero
@@ -162,7 +144,7 @@ class SIMBA(Teleprompter):
             probs = [val / sum_exps for val in exps]
             return rng_obj.choices(program_idxs, weights=probs, k=1)[0]
 
-        def register_new_program(prog: "dspy.Module", score_list: list[float]) -> None:
+        def register_new_program(prog: dspy.Module, score_list: list[float]) -> None:
             nonlocal next_program_idx
             next_program_idx += 1
             new_idx = next_program_idx
@@ -231,8 +213,8 @@ class SIMBA(Teleprompter):
             # STEP 3: Sort the training buckets by (max-to-min gap, max score, and max-to-avg gap).
             buckets = []
             largest_max_to_avg_gap = float("-inf")
-            batch_10th_percentile_score = _percentile([float(o["score"]) for o in outputs], 10)
-            batch_90th_percentile_score = _percentile([float(o["score"]) for o in outputs], 90)
+            batch_10th_percentile_score = np.percentile([float(o["score"]) for o in outputs], 10)
+            batch_90th_percentile_score = np.percentile([float(o["score"]) for o in outputs], 90)
 
             # We'll chunk `outputs` by example index, each chunk has length = num_candidates
             for idx, _ in enumerate(batch):
@@ -284,7 +266,7 @@ class SIMBA(Teleprompter):
                     num_demos_list.append(len(predictor.demos))
 
                 num_demos = max(num_demos_list) if num_demos_list else 0
-                num_demos_to_drop = max(_poisson(rng_poisson, num_demos / max_demos_tmp), int(num_demos >= max_demos_tmp))
+                num_demos_to_drop = max(rng_np.poisson(num_demos / max_demos_tmp), int(num_demos >= max_demos_tmp))
                 num_demos_to_drop = min(num_demos_to_drop, num_demos)
                 demos_to_drop = [rng.randrange(num_demos) for _ in range(num_demos_to_drop)]
 

@@ -59,7 +59,7 @@ def count_messages_with_image_url_pattern(messages):
                 count += 1
             if isinstance(obj, dict):
                 count += sum(count_patterns(v, pattern) for v in obj.values())
-            if isinstance(obj, list | tuple):
+            if isinstance(obj, (list, tuple)):
                 count += sum(count_patterns(v, pattern) for v in obj)
             return count
 

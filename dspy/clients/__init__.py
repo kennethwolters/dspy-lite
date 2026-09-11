@@ -3,8 +3,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-import litelm
-
+from dspy.clients._litelm import get_litelm
 from dspy.clients.base_lm import BaseLM, inspect_history
 from dspy.clients.cache import Cache
 from dspy.clients.embedding import Embedder
@@ -56,9 +55,6 @@ def configure_cache(
     dspy.cache = DSPY_CACHE
 
 
-litelm.telemetry = False
-litelm.cache = None  # By default we disable litelm cache and use DSPy on-disk cache.
-
 
 def _get_dspy_cache():
     disk_cache_dir = os.environ.get("DSPY_CACHEDIR") or os.path.join(Path.home(), ".dspy_cache")
@@ -89,9 +85,10 @@ DSPY_CACHE = _get_dspy_cache()
 
 
 def configure_litelm_logging(level: str = "ERROR"):
-    """Configure litelm logging to the specified level."""
+    """Configure LiteLM logging to the specified level."""
     # Litelm uses a global logger called `verbose_logger` to control all loggings.
-    from litelm._logging import verbose_logger
+    litelm = get_litelm(feature="LiteLM logging")
+    verbose_logger = litelm._logging.verbose_logger
 
     numeric_logging_level = getattr(logging, level)
 
@@ -101,17 +98,17 @@ def configure_litelm_logging(level: str = "ERROR"):
 
 
 def enable_litelm_logging():
+    litelm = get_litelm(feature="LiteLM logging")
     litelm.suppress_debug_info = False
+    litelm._dspy_logging_configured = True
     configure_litelm_logging("DEBUG")
 
 
 def disable_litelm_logging():
+    litelm = get_litelm(feature="LiteLM logging")
     litelm.suppress_debug_info = True
+    litelm._dspy_logging_configured = True
     configure_litelm_logging("ERROR")
-
-
-# By default, we disable litelm logging for clean logging
-disable_litelm_logging()
 
 __all__ = [
     "BaseLM",
