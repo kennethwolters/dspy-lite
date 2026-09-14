@@ -31,7 +31,7 @@ dependencies = [
     "tqdm==4.70.1",
     "requests==2.34.2",
     "pydantic==2.13.5",
-    "litelm==0.5.1",
+    "litelm==0.5.2",
     "diskcache==5.6.3",
     "json-repair==0.63.4",
     "anyio==4.15.1",
@@ -42,13 +42,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-anthropic = ["litelm[anthropic]==0.5.1"]
+anthropic = ["litelm[anthropic]==0.5.2"]
 weaviate = ["weaviate-client==4.23.1"]
 mcp = ["mcp==2.2.0; python_version >= '3.10'"]
-langchain = ["langchain_core==1.6.2"]
+langchain = ["langchain_core==1.6.3"]
 optuna = ["optuna==5.0.0"]
-bedrock = ["litelm[bedrock]==0.5.1"]
-cloudflare = ["litelm[cloudflare]==0.5.1"]
+bedrock = ["litelm[bedrock]==0.5.2"]
+cloudflare = ["litelm[cloudflare]==0.5.2"]
 deno = ["deno==2.9.6"]
 embeddings = [
     "numpy==2.2.6; python_version == '3.10'",
@@ -57,7 +57,7 @@ embeddings = [
 ]
 all = ["dspy-lite[anthropic,bedrock,cloudflare,deno,embeddings]"]
 dev = [
-    "pytest==9.0.3",
+    "pytest==9.1.1",
     "pytest-timeout==2.4.0",
     "pytest-mock==3.15.1",
     "pytest-asyncio==1.4.0",
@@ -65,9 +65,9 @@ dev = [
     "pre-commit==4.6.2",
     "pillow==12.3.0",
     "datamodel_code_generator==0.79.0",
-    "build==1.6.0",
+    "build==1.6.1",
     "pip-audit==2.10.1",
-    "litelm==0.5.1",
+    "litelm==0.5.2",
 ]
 test_extras = [
     "mcp==2.2.0; python_version >= '3.10'",
@@ -75,7 +75,7 @@ test_extras = [
     "pandas==2.3.3; python_version == '3.10'",
     "pandas==3.0.5; python_version >= '3.11' and python_version < '3.15'",
     "optuna==5.0.0",
-    "langchain_core==1.6.2",
+    "langchain_core==1.6.3",
 ]
 
 [tool.hatch.build.targets.wheel]
