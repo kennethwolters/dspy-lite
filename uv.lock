@@ -866,7 +866,7 @@ wheels = [
 
 [[package]]
 name = "dspy-lite"
-version = "3.3.1.post1"
+version = "3.3.1.post2"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },
@@ -960,11 +960,11 @@ requires-dist = [
     { name = "jsonschema", specifier = "==4.26.0" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = "==1.6.2" },
     { name = "langchain-core", marker = "extra == 'test-extras'", specifier = "==1.6.2" },
-    { name = "litelm", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.1" },
-    { name = "litelm", marker = "extra == 'dev'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.1" },
-    { name = "litelm", extras = ["anthropic"], marker = "extra == 'anthropic'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.1" },
-    { name = "litelm", extras = ["bedrock"], marker = "extra == 'bedrock'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.1" },
-    { name = "litelm", extras = ["cloudflare"], marker = "extra == 'cloudflare'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.1" },
+    { name = "litelm", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.3" },
+    { name = "litelm", marker = "extra == 'dev'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.3" },
+    { name = "litelm", extras = ["anthropic"], marker = "extra == 'anthropic'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.3" },
+    { name = "litelm", extras = ["bedrock"], marker = "extra == 'bedrock'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.3" },
+    { name = "litelm", extras = ["cloudflare"], marker = "extra == 'cloudflare'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.3" },
     { name = "mcp", marker = "python_full_version >= '3.10' and extra == 'mcp'", specifier = "==2.2.0" },
     { name = "mcp", marker = "python_full_version >= '3.10' and extra == 'test-extras'", specifier = "==2.2.0" },
     { name = "numpy", marker = "python_full_version == '3.10.*' and extra == 'embeddings'", specifier = "==2.2.6" },
@@ -1725,8 +1725,8 @@ wheels = [
 
 [[package]]
 name = "litelm"
-version = "0.5.1"
-source = { git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.1#39e41fd622512ab74b077336206096ef4a5da95a" }
+version = "0.5.3"
+source = { git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.3#c51a5399ba0669afa44170f8fd0dac9c1e4aecf4" }
 dependencies = [
     { name = "httpx" },
     { name = "openai" },
