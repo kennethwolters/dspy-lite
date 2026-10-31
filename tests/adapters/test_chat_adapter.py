@@ -2779,7 +2779,7 @@ def test_responses_model_native_tool_calling_round_trips_tool_only_output():
         truncation="disabled",
         usage=ResponseAPIUsage(
             input_tokens=1,
-            input_tokens_details={"cached_tokens": 0},
+            input_tokens_details={"cached_tokens": 0, "cache_write_tokens": 0},
             output_tokens=1,
             output_tokens_details={"reasoning_tokens": 0},
             total_tokens=2,

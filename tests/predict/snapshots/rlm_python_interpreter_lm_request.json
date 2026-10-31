@@ -26,6 +26,7 @@
       "metadata": {}
     }
   ],
+  "decision": null,
   "tools": [],
   "config": {
     "temperature": 0.0,

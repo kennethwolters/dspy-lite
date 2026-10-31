@@ -35,7 +35,9 @@ def _provider_type(tag):
 
 class JsonCodec:
     def __init__(self, safe_types=None):
-        self.safe_types = {}
+        from dspy.core.types import LMResponse
+
+        self.safe_types = {f"{LMResponse.__module__}.{LMResponse.__qualname__}": LMResponse}
         for cls in safe_types or []:
             if not isinstance(cls, type):
                 raise TypeError("safe_types entries must be types")

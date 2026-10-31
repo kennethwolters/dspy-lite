@@ -857,7 +857,7 @@ wheels = [
 
 [[package]]
 name = "dspy-lite"
-version = "3.3.1.post4"
+version = "3.3.1.post5"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },
@@ -949,17 +949,17 @@ requires-dist = [
     { name = "jsonschema", specifier = "==4.26.0" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = "==1.6.2" },
     { name = "langchain-core", marker = "extra == 'test-extras'", specifier = "==1.6.2" },
-    { name = "litelm", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.3" },
-    { name = "litelm", marker = "extra == 'dev'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.3" },
-    { name = "litelm", extras = ["anthropic"], marker = "extra == 'anthropic'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.3" },
-    { name = "litelm", extras = ["bedrock"], marker = "extra == 'bedrock'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.3" },
-    { name = "litelm", extras = ["cloudflare"], marker = "extra == 'cloudflare'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.3" },
+    { name = "litelm", git = "https://github.com/kennethwolters/litelm.git?tag=v0.6.0" },
+    { name = "litelm", marker = "extra == 'dev'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.6.0" },
+    { name = "litelm", extras = ["anthropic"], marker = "extra == 'anthropic'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.6.0" },
+    { name = "litelm", extras = ["bedrock"], marker = "extra == 'bedrock'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.6.0" },
+    { name = "litelm", extras = ["cloudflare"], marker = "extra == 'cloudflare'", git = "https://github.com/kennethwolters/litelm.git?tag=v0.6.0" },
     { name = "mcp", marker = "python_full_version >= '3.10' and extra == 'mcp'", specifier = "==2.2.0" },
     { name = "mcp", marker = "python_full_version >= '3.10' and extra == 'test-extras'", specifier = "==2.2.0" },
     { name = "numpy", marker = "python_full_version == '3.10.*' and extra == 'embeddings'", specifier = "==2.2.6" },
     { name = "numpy", marker = "python_full_version == '3.11.*' and extra == 'embeddings'", specifier = "==2.4.6" },
     { name = "numpy", marker = "python_full_version >= '3.12' and python_full_version < '3.15' and extra == 'embeddings'", specifier = "==2.5.3" },
-    { name = "openai", specifier = "==1.88.0" },
+    { name = "openai", specifier = "==2.54.0" },
     { name = "optuna", marker = "extra == 'optuna'", specifier = "==5.0.0" },
     { name = "optuna", marker = "extra == 'test-extras'", specifier = "==5.0.0" },
     { name = "orjson", specifier = "==3.12.0" },
@@ -1714,11 +1714,12 @@ wheels = [
 
 [[package]]
 name = "litelm"
-version = "0.5.3"
-source = { git = "https://github.com/kennethwolters/litelm.git?tag=v0.5.3#c51a5399ba0669afa44170f8fd0dac9c1e4aecf4" }
+version = "0.6.0"
+source = { git = "https://github.com/kennethwolters/litelm.git?tag=v0.6.0#eb6834719ef51af63f9f72fcb299042b690aee43" }
 dependencies = [
-    { name = "httpx" },
-    { name = "openai" },
+    { name = "httpx2" },
+    { name = "openai", extra = ["httpx2"] },
+    { name = "pydantic" },
 ]
 
 [package.optional-dependencies]
@@ -2356,7 +2357,7 @@ wheels = [
 
 [[package]]
 name = "openai"
-version = "1.88.0"
+version = "2.54.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -2368,9 +2369,16 @@ dependencies = [
     { name = "tqdm" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5a/ea/bbeef604d1fe0f7e9111745bb8a81362973a95713b28855beb9a9832ab12/openai-1.88.0.tar.gz", hash = "sha256:122d35e42998255cf1fc84560f6ee49a844e65c054cd05d3e42fda506b832bb1", size = 470963, upload-time = "2025-06-17T05:04:45.856Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/50/9a/8c75e8c8a5b407a0586faeb2afac91674ff955c191ecc1d6d3b6669f6788/openai-2.54.0.tar.gz", hash = "sha256:e3e6f8bc1ba30ddf381ace1a14340eed381cb984a1a59bd0f34b5be3b5d49cfa", size = 1100285, upload-time = "2026-08-11T18:46:59.035Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f4/03/ef68d77a38dd383cbed7fc898857d394d5a8b0520a35f054e7fe05dc3ac1/openai-1.88.0-py3-none-any.whl", hash = "sha256:7edd7826b3b83f5846562a6f310f040c79576278bf8e3687b30ba05bb5dff978", size = 734293, upload-time = "2025-06-17T05:04:43.858Z" },
+    { url = "https://files.pythonhosted.org/packages/64/a8/bb76c7356de8ad57f59d5ff993d434df0607f07f08bcc9c9a5c275e399c0/openai-2.54.0-py3-none-any.whl", hash = "sha256:89089789197ccdb87f173a03145ed1598d00795220c93e96cf712b1cbf5e5f2b", size = 1660351, upload-time = "2026-08-11T18:46:56.684Z" },
+]
+
+[package.optional-dependencies]
+httpx2 = [
+    { name = "anyio" },
+    { name = "httpx" },
+    { name = "httpx2" },
 ]
 
 [[package]]

@@ -12,7 +12,7 @@ from typing import Annotated, Any, Literal
 from urllib.parse import urlparse
 
 import pydantic
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 
 __all__ = [
     "Assistant",
@@ -23,6 +23,7 @@ __all__ = [
     "LMCitationPart",
     "LMConfig",
     "LMDocumentPart",
+    "LMDecisionSpec",
     "LMImagePart",
     "LMMessage",
     "LMOutput",
@@ -621,11 +622,25 @@ class LMRequestPatch:
         return kwargs
 
 
+class LMDecisionSpec(BaseModel):
+    """Native decision state and question spaces; never a chat prompt.
+
+    The transport validates question types and distributions. This JSON-only
+    representation keeps the request durable without importing a provider SDK.
+    """
+
+    state: JsonValue
+    questions: dict[str, dict[str, JsonValue]] = Field(min_length=1, max_length=128)
+
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, hide_input_in_errors=True)
+
+
 class LMRequest(BaseModel):
     """A normalized request passed to a `LanguageModel`."""
 
     model: str
     messages: list[LMMessage]
+    decision: LMDecisionSpec | None = None
     tools: list[LMToolSpec] = Field(default_factory=list)
     config: LMConfig = Field(default_factory=LMConfig)
     metadata: dict[str, Any] = Field(default_factory=dict)

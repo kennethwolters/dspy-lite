@@ -64,7 +64,7 @@ class LM(BaseLM):
     def __init__(
         self,
         model: str,
-        model_type: Literal["chat", "text", "responses"] = "chat",
+        model_type: Literal["chat", "text", "responses", "decision"] = "chat",
         temperature: float | None = None,
         max_tokens: int | None = None,
         cache: bool = True,
@@ -83,8 +83,8 @@ class LM(BaseLM):
             model: The model to use. This should be a string of the form
                 `"llm_provider/llm_name"` supported by LiteLM. For example,
                 `"openai/gpt-4o"`.
-            model_type: The type of the model, such as `"chat"`, `"text"`, or
-                `"responses"`.
+            model_type: `"chat"`, `"text"`, `"responses"`, or explicit native
+                `"decision"` for System One inference (no generation fallback).
             temperature: The sampling temperature to use when generating responses.
             max_tokens: The maximum number of tokens to generate per response.
             cache: Whether to cache the model responses for reuse to improve performance
@@ -113,6 +113,12 @@ class LM(BaseLM):
             **kwargs,
         )
 
+        if model_type == "decision":
+            if not _get_litelm().supports_systemone(model):
+                raise LMUnsupportedModelError("Unsupported native decision provider.", model=model)
+            if temperature is not None or max_tokens is not None or use_developer_role:
+                raise LMUnsupportedFeatureError("Native decisions do not support generation settings.", model=model)
+
         self.provider = provider or self.infer_provider()
         self.finetuning_model = finetuning_model
         self.launch_kwargs = launch_kwargs or {}
@@ -122,6 +128,9 @@ class LM(BaseLM):
         self._warn_zero_temp_rollout(self.kwargs.get("temperature"), self.kwargs.get("rollout_id"))
 
     def _get_initial_kwargs(self, *, temperature, max_tokens, **kwargs) -> dict[str, Any]:
+        # Decision deployment names do not imply generative model-family settings.
+        if self.model_type == "decision":
+            return dict(temperature=temperature, max_tokens=max_tokens, **kwargs)
         # Override BaseLM's default kwargs shape for LiteLM/model-family-specific token parameters.
         if _is_openai_reasoning_model(self.model):
             if (temperature and temperature != 1.0) or (max_tokens and max_tokens < 16000):
@@ -139,6 +148,15 @@ class LM(BaseLM):
             initial_kwargs.pop("rollout_id", None)
         return initial_kwargs
 
+    def _get_forward_contract(self):
+        if self.model_type == "decision":
+            return "typed_lm"
+        return super()._get_forward_contract()
+
+    @property
+    def supports_decision_requests(self) -> bool:
+        return self.model_type == "decision"
+
     @property
     def _provider_name(self) -> str:
         """Extract the provider name from the model string (e.g., 'openai' from 'openai/gpt-4o')."""
@@ -148,18 +166,26 @@ class LM(BaseLM):
 
     @property
     def supports_function_calling(self) -> bool:
+        if self.supports_decision_requests:
+            return False
         return _get_litelm().supports_function_calling(model=self.model)
 
     @property
     def supports_reasoning(self) -> bool:
+        if self.supports_decision_requests:
+            return False
         return _get_litelm().supports_reasoning(self.model)
 
     @property
     def supports_response_schema(self) -> bool:
+        if self.supports_decision_requests:
+            return False
         return _get_litelm().supports_response_schema(model=self.model, custom_llm_provider=self._provider_name)
 
     @property
     def supported_params(self) -> set[str]:
+        if self.supports_decision_requests:
+            return set()
         params = _get_litelm().get_supported_openai_params(model=self.model, custom_llm_provider=self._provider_name)
         return set(params) if params else set()
 
@@ -230,6 +256,13 @@ class LM(BaseLM):
                 failures, which adapters use to avoid inappropriate fallback
                 retries when the prompt is too long.
         """
+        if self.supports_decision_requests:
+            from dspy.clients.decision import forward
+
+            if messages is not None or kwargs:
+                raise LMUnsupportedFeatureError("Use an LMRequest with a decision spec.", model=self.model)
+            return forward(self, prompt)
+
         # Build the request.
         kwargs = dict(kwargs)
         cache = kwargs.pop("cache", self.cache)
@@ -288,6 +321,13 @@ class LM(BaseLM):
                 failures, which adapters use to avoid inappropriate fallback
                 retries when the prompt is too long.
         """
+        if self.supports_decision_requests:
+            from dspy.clients.decision import aforward
+
+            if messages is not None or kwargs:
+                raise LMUnsupportedFeatureError("Use an LMRequest with a decision spec.", model=self.model)
+            return await aforward(self, prompt)
+
         # Build the request.
         kwargs = dict(kwargs)
         cache = kwargs.pop("cache", self.cache)
@@ -410,6 +450,9 @@ class LM(BaseLM):
             reconstruct this `LM`. The state excludes API keys.
         """
         state = super().dump_state()
+        if self.supports_decision_requests:
+            state.pop("azure_ad_token_provider", None)
+            state.pop("http_client", None)
         state.update(
             {
                 "finetuning_model": self.finetuning_model,

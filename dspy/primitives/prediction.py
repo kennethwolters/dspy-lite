@@ -1,3 +1,5 @@
+import copy
+
 from dspy.primitives.example import Example
 
 
@@ -23,6 +25,11 @@ class Prediction(Example):
 
         self._completions = None
         self._lm_usage = None
+        self._decision_evidence = None
+
+    def get_decision_evidence(self):
+        """Return a detached JSON copy of native probability evidence, when present."""
+        return copy.deepcopy(self._decision_evidence)
 
     def get_lm_usage(self):
         return self._lm_usage
