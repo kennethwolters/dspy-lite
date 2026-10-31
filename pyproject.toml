@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dspy-lite"
-version = "3.3.1.post2"
+version = "3.3.1.post3"
 description = "DSPy with litellm replaced by litelm and numpy made optional"
 readme = "README.md"
 authors = [{ name = "Kenneth Wolters" }]
@@ -32,7 +32,6 @@ dependencies = [
     "requests==2.34.2",
     "pydantic==2.13.5",
     "litelm==0.5.3",
-    "diskcache==5.6.3",
     "json-repair==0.63.4",
     "anyio==4.15.1",
     "cachetools==7.1.8",

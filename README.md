@@ -60,7 +60,9 @@ Applications must validate or allowlist untrusted URLs before calling `from_url(
 
 ### Disk-cache safety
 
-Disk caches use restricted pickle deserialization by default. Custom cached classes must be registered with `dspy.configure_cache(safe_types=[...])`. Setting `restrict_pickle=False` restores unrestricted pickle compatibility, emits a warning, and must only be used when the cache directory is fully trusted. Unsafe or incompatible legacy entries are treated as cache misses rather than retried with unrestricted deserialization.
+Persistent caches use versioned JSON in stdlib SQLite, not pickle or DiskCache. Built-in provider response types and numeric NumPy arrays round-trip; custom dataclasses and Pydantic data models require `dspy.configure_cache(safe_types=[...])`. Register only trusted data types: model validation may invoke their validators. Unsupported values remain eligible for memory caching but are not persisted. `restrict_pickle=False` is rejected.
+
+Storage lives under `json-v1/` within the configured cache directory. Legacy pickle directories are left untouched and never read or migrated; old entries become misses. The size limit bounds logical entry costs (serialized values, keys and metadata), not the exact physical size of SQLite files. The latest configuration sets the shared budget for all instances and immediately evicts excess entries. Failed/oversized replacements invalidate the old entry rather than resurrecting stale responses. SQLite transactions coordinate threads and processes; eviction removes least-recently-used entries. Cache files cannot be symlinks/hard links; POSIX storage requires private app-owned paths, including safe parent directories. These protections do not defend against a compromised application account. Corrupt or unknown data become misses without payload logging. Explicit `load_memory_cache(..., allow_pickle=True)` remains a separate, unsafe opt-in API; persistent-cache reads never fall back to it.
 
 ### DSPy 3.3 APIs
 

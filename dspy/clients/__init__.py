@@ -34,9 +34,8 @@ def configure_cache(
         disk_size_limit_bytes: The size limit of the on-disk cache.
         memory_max_entries: The maximum number of entries in the in-memory cache. To allow the cache to grow without
                             bounds, set this parameter to `math.inf` or a similar value.
-        restrict_pickle: When True (default), restrict pickle deserialization to a known-safe
-            set of types. False enables unsafe pickle loading and is only for fully trusted caches.
-        safe_types: Additional types to allow when restrict_pickle is True.
+        restrict_pickle: Compatibility parameter. False is rejected; persistent entries use JSON, never pickle.
+        safe_types: Additional dataclasses or Pydantic models registered for JSON round trips.
     """
 
     DSPY_CACHE = Cache(
@@ -70,7 +69,7 @@ def _get_dspy_cache():
         )
     except Exception as e:
         # If cache creation fails (e.g., in AWS Lambda), create a memory-only cache
-        logger.warning("Failed to initialize disk cache, falling back to memory-only cache: %s", e)
+        logger.warning("Failed to initialize disk cache, falling back to memory-only cache: %s", type(e).__name__)
         _dspy_cache = Cache(
             enable_disk_cache=False,
             enable_memory_cache=True,
