@@ -82,15 +82,13 @@ class JSONAdapter(ChatAdapter):
                 signature, self.use_native_function_calling
             )
             lm_kwargs["response_format"] = structured_output_model
-            return super().__call__(lm, lm_kwargs, signature, demos, inputs)
         except LMError:
-            # Provider/backend failures should propagate; the fallback below is only for local structured-output
-            # setup/schema failures where retrying in JSON mode is appropriate.
             raise
         except Exception:
-            logger.warning("Failed to use structured output format, falling back to JSON mode.")
+            logger.warning("Failed to construct structured output schema, using JSON mode.")
             lm_kwargs["response_format"] = {"type": "json_object"}
-            return super().__call__(lm, lm_kwargs, signature, demos, inputs)
+        # Only local schema construction may fall back, never a dispatched call or its parser.
+        return super().__call__(lm, lm_kwargs, signature, demos, inputs)
 
     async def acall(
         self,
@@ -109,15 +107,13 @@ class JSONAdapter(ChatAdapter):
                 signature, self.use_native_function_calling
             )
             lm_kwargs["response_format"] = structured_output_model
-            return await super().acall(lm, lm_kwargs, signature, demos, inputs)
         except LMError:
-            # Provider/backend failures should propagate; the fallback below is only for local structured-output
-            # setup/schema failures where retrying in JSON mode is appropriate.
             raise
         except Exception:
-            logger.warning("Failed to use structured output format, falling back to JSON mode.")
+            logger.warning("Failed to construct structured output schema, using JSON mode.")
             lm_kwargs["response_format"] = {"type": "json_object"}
-            return await super().acall(lm, lm_kwargs, signature, demos, inputs)
+        # Only local schema construction may fall back, never a dispatched call or its parser.
+        return await super().acall(lm, lm_kwargs, signature, demos, inputs)
 
     def format_field_structure(self, signature: type[Signature]) -> str:
         parts = []

@@ -63,17 +63,17 @@ def test_bootstrap_trace_data():
         call_count = completion_side_effect.call_count
         completion_side_effect.call_count += 1
 
-        if call_count in (2, 3):
-            # Return malformed responses for both structured-output mode and JSON-mode fallback.
+        if call_count == 2:
+            # A failed parse consumes one response, with no adapter-owned retry.
             return ModelResponse(
                 choices=[Choices(message=Message(content="This is an invalid JSON!"))],
                 model="openai/gpt-4o-mini",
             )
-        return successful_responses[call_count if call_count < 2 else call_count - 2]
+        return successful_responses[call_count if call_count < 2 else call_count - 1]
 
     completion_side_effect.call_count = 0
 
-    with mock.patch("litelm.completion", side_effect=completion_side_effect):
+    with mock.patch("litelm.completion", side_effect=completion_side_effect) as completion:
         # Call bootstrap_trace_data
         results = bootstrap_trace_data(
             program=program,
@@ -84,7 +84,8 @@ def test_bootstrap_trace_data():
             capture_failed_parses=True,
         )
 
-    # Verify results
+    # Each example dispatches once, including the captured parse failure.
+    assert completion.call_count == len(dataset), f"Expected 5 dispatches, got {completion.call_count}"
     assert len(results) == 5, f"Expected 5 results, got {len(results)}"
 
     # Count successful and failed predictions
