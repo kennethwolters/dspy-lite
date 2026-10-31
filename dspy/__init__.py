@@ -8,10 +8,12 @@ from dspy.predict.flex import Flex
 from dspy.evaluate import Evaluate  # isort: skip
 from dspy.clients import *  # isort: skip
 from dspy.adapters import Adapter, ChatAdapter, JSONAdapter, XMLAdapter, TwoStepAdapter, Image, Audio, File, History, Type, Tool, ToolCalls, ToolCallResults, Code, Reasoning  # isort: skip
+from dspy.adapters.types.decision import Choice, Noul, Score  # isort: skip
 from dspy.core import (  # isort: skip
     Assistant,
     Developer,
     LMConfig,
+    LMDecisionSpec,
     LMMessage,
     LMRequest,
     LMResponse,

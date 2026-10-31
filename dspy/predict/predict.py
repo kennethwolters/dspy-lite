@@ -1,3 +1,4 @@
+import copy
 import logging
 import random
 import types
@@ -60,6 +61,7 @@ class Predict(Module, Parameter):
         self.stage = random.randbytes(8).hex()
         self.signature = ensure_signature(signature)
         self.config = config
+        self.fields = {}
         self.reset()
 
     def reset(self):
@@ -69,6 +71,9 @@ class Predict(Module, Parameter):
         self.demos = []
 
     def dump_state(self, json_mode=True):
+        from dspy.adapters.decision_state import DecisionState
+
+        DecisionState(self.signature, self.fields)
         state_keys = ["traces", "train"]
         state = {k: getattr(self, k) for k in state_keys}
 
@@ -85,6 +90,7 @@ class Predict(Module, Parameter):
             else:
                 state["demos"].append(demo.toDict())
 
+        state["fields"] = copy.deepcopy(self.fields)
         state["signature"] = self.signature.dump_state()
         state["lm"] = self.lm.dump_state() if self.lm else None
         return state
@@ -100,13 +106,19 @@ class Predict(Module, Parameter):
         Returns:
             Self to allow method chaining.
         """
-        excluded_keys = ["signature", "extended_signature", "lm"]
+        from dspy.adapters.decision_state import DecisionState
+
+        restored_signature = self.signature.load_state(state["signature"])
+        restored_fields = copy.deepcopy(state.get("fields", {}))
+        DecisionState(restored_signature, restored_fields)
+        excluded_keys = ["signature", "extended_signature", "lm", "fields"]
         for name, value in state.items():
             # `excluded_keys` are fields that go through special handling.
             if name not in excluded_keys:
                 setattr(self, name, value)
 
-        self.signature = self.signature.load_state(state["signature"])
+        self.signature = restored_signature
+        self.fields = restored_fields
         sanitized_lm_state = _sanitize_lm_state(state["lm"], allow_unsafe_lm_state) if state["lm"] else None
         self.lm = (
             BaseLM.load_state(sanitized_lm_state, allow_custom_lm_class=allow_unsafe_lm_state)
@@ -199,7 +211,7 @@ class Predict(Module, Parameter):
             )
 
         # Validate input field types match signature
-        if settings.warn_on_type_mismatch:
+        if settings.warn_on_type_mismatch and getattr(lm, "supports_decision_requests", False) is not True:
             for field_name, field_info in signature.input_fields.items():
                 if field_name in kwargs:
                     value = kwargs[field_name]
@@ -233,12 +245,38 @@ class Predict(Module, Parameter):
 
     def _forward_postprocess(self, completions, signature, **kwargs):
         pred = Prediction.from_completions(completions, signature=signature)
+        if hasattr(completions, "evidence"):
+            pred._decision_evidence = copy.deepcopy(completions.evidence)
         if kwargs.pop("_trace", True) and settings.trace is not None and settings.max_trace_size > 0:
             trace = settings.trace
             if len(trace) >= settings.max_trace_size:
                 trace.pop(0)
             trace.append((self, {**kwargs}, pred))
         return pred
+
+    def _get_adapter(self, lm, signature):
+        if getattr(lm, "supports_decision_requests", False) is True:
+            from dspy.adapters.decision import DecisionAdapter
+
+            return DecisionAdapter(signature, self.fields, declared_signature=self.signature)
+        if self.fields:
+            raise ValueError("Decision field configuration requires an LM with model_type='decision'.")
+        return settings.adapter or ChatAdapter()
+
+    def get_criteria(self, field):
+        from dspy.adapters.decision_state import DecisionState
+
+        fields = copy.deepcopy(self.fields)
+        fields.setdefault(field, {})
+        return DecisionState(self.signature, fields).get_criteria(field)
+
+    def set_criteria(self, field, criteria):
+        from dspy.adapters.decision_state import DecisionState
+
+        fields = copy.deepcopy(self.fields)
+        fields.setdefault(field, {})["criteria"] = copy.deepcopy(criteria)
+        DecisionState(self.signature, fields)
+        self.fields = fields
 
     def _should_stream(self):
         stream_listeners = settings.stream_listeners or []
@@ -251,7 +289,7 @@ class Predict(Module, Parameter):
     def forward(self, **kwargs):
         lm, config, signature, demos, kwargs = self._forward_preprocess(**kwargs)
 
-        adapter = settings.adapter or ChatAdapter()
+        adapter = self._get_adapter(lm, signature)
 
         if self._should_stream():
             with settings.context(caller_predict=self):
@@ -265,7 +303,7 @@ class Predict(Module, Parameter):
     async def aforward(self, **kwargs):
         lm, config, signature, demos, kwargs = self._forward_preprocess(**kwargs)
 
-        adapter = settings.adapter or ChatAdapter()
+        adapter = self._get_adapter(lm, signature)
         if self._should_stream():
             with settings.context(caller_predict=self):
                 completions = await adapter.acall(lm, lm_kwargs=config, signature=signature, demos=demos, inputs=kwargs)

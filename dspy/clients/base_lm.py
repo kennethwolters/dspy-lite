@@ -566,6 +566,10 @@ class BaseLM:
 
     def _legacy_forward_kwargs(self, request: LMRequest) -> dict[str, Any]:
         """Convert a normalized request into kwargs for legacy `forward()` implementations."""
+        if request.decision is not None:
+            from dspy.utils.exceptions import LMUnsupportedFeatureError
+
+            raise LMUnsupportedFeatureError("Decision requests require model_type='decision'.", model=self.model)
         data = to_openai_chat_request(request)
         data.pop("model", None)
         if request.config.cache is not None:
@@ -593,6 +597,12 @@ class BaseLM:
                 settings.usage_tracker.add_usage(self.model, usage)
 
         if not settings.disable_history:
+            if request.decision is not None:
+                config = request.config.model_copy(update={"extensions": {
+                    k: v for k, v in request.config.extensions.items()
+                    if k not in {"api_key", "azure_ad_token_provider", "http_client"}
+                }})
+                request = request.model_copy(update={"config": config})
             entry = LMHistoryEntry(
                 request=request,
                 response=response,
