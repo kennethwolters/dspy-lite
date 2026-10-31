@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dspy-lite"
-version = "3.3.1.post3"
+version = "3.3.1.post4"
 description = "DSPy with litellm replaced by litelm and numpy made optional"
 readme = "README.md"
 authors = [{ name = "Kenneth Wolters" }]

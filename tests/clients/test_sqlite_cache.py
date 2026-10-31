@@ -3,6 +3,7 @@ import multiprocessing
 import os
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
+from unittest.mock import patch
 
 import pytest
 
@@ -194,6 +195,23 @@ def test_corrupt_row_propagates_and_can_be_deleted(tmp_path):
     with pytest.raises(DeserializationError):
         cache.get("bad")
     assert cache.delete("bad")
+
+
+def test_unlinked_regular_stat_snapshot_is_not_a_hard_link(tmp_path):
+    cache = make_cache(tmp_path)
+    cache.set("key", "value")
+    original = type(cache.database).lstat
+
+    def snapshot(path):
+        result = original(path)
+        if path == cache.database:
+            fields = list(result)
+            fields[3] = 0
+            return os.stat_result(fields)
+        return result
+
+    with patch.object(type(cache.database), "lstat", snapshot):
+        assert cache.get("key") == "value"
 
 
 def test_corrupt_database_raises_fixed_error(tmp_path):

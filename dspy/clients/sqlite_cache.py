@@ -61,10 +61,12 @@ class SqliteCache:
             except FileNotFoundError:
                 continue
             directory = path in (root, self.database.parent)
-            if (stat.S_ISLNK(info.st_mode)
-                    or not (stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode))
-                    or (not directory and info.st_nlink != 1)):
-                raise ValueError("Cache paths must be private and cannot be symlinks or hard links")
+            if stat.S_ISLNK(info.st_mode):
+                raise ValueError("Cache paths cannot be symlinks")
+            if not (stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode)):
+                raise ValueError("Cache path has an unexpected file type")
+            if not directory and info.st_nlink > 1:
+                raise ValueError("Cache paths cannot have hard links")
             mask = 0o077 if path == self.database.parent else 0o022
             if os.name == "posix" and (info.st_uid != os.getuid() or info.st_mode & mask):
                 raise ValueError("Cache paths must be private")
