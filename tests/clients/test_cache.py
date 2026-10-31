@@ -410,6 +410,16 @@ def test_disk_cache_refuses_pickle_opt_out(tmp_path):
         Cache(enable_disk_cache=True, enable_memory_cache=False, disk_cache_dir=tmp_path, restrict_pickle=False)
 
 
+@pytest.mark.parametrize("replacement", [object(), "x" * 5000])
+def test_rejected_replacement_cannot_resurrect_old_response(tmp_path, replacement):
+    cache = Cache(True, True, tmp_path, disk_size_limit_bytes=300)
+    request = {"model": "synthetic", "prompt": "synthetic"}
+    cache.put(request, "old")
+    cache.put(request, replacement)
+    cache.reset_memory_cache()
+    assert cache.get(request) is None
+
+
 def test_default_disk_cache_rejects_malicious_pickle(tmp_path):
     cache_dir = tmp_path / "cache"
     marker = tmp_path / "pickle-executed"

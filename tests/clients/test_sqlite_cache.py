@@ -1,5 +1,6 @@
 import json
 import multiprocessing
+import os
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 
@@ -59,10 +60,101 @@ def test_lru_and_limits(tmp_path):
     assert not cache.set("huge", "x" * 200)
     assert len(cache) == 2
     assert not cache.set("a", "x" * 200)
-    assert cache.get("a") == 1
+    assert cache.get("a") is None
     zero = make_cache(tmp_path / "zero", 0)
     assert not zero.set("key", 1)
     assert len(zero) == 0
+
+
+def test_failed_replacement_cannot_restore_old_value(tmp_path):
+    cache = make_cache(tmp_path)
+    cache.set("key", "old")
+    with pytest.raises(TypeError):
+        cache.set("key", object())
+    assert make_cache(tmp_path).get("key") is None
+
+
+def test_lowered_limit_applies_to_existing_instances(tmp_path):
+    original = make_cache(tmp_path, 1000)
+    original.set("key", "x" * 500)
+    limited = make_cache(tmp_path, 0)
+    assert limited.get("key") is None
+    assert original.get("key") is None
+    assert not original.set("new", "value")
+    assert len(limited) == 0
+    expanded = make_cache(tmp_path, 1000)
+    assert original.set("new", "value")
+    assert expanded.get("new") == "value"
+
+
+@pytest.mark.parametrize("target", ["database", "namespace", "wal"])
+def test_symlinks_cannot_redirect_cache_writes(tmp_path, target):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    database = outside / "other.sqlite3"
+    with sqlite3.connect(database) as connection:
+        connection.execute("CREATE TABLE untouched (value TEXT)")
+    before = database.read_bytes()
+    cache_root = tmp_path / "cache"
+    namespace = cache_root / "json-v1"
+    namespace.mkdir(mode=0o700, parents=True)
+    if target == "namespace":
+        namespace.rmdir()
+        namespace.symlink_to(outside, target_is_directory=True)
+    else:
+        (namespace / ("cache.sqlite3" if target == "database" else "cache.sqlite3-wal")).symlink_to(database)
+    with pytest.raises(ValueError, match="private|symlink"):
+        make_cache(cache_root)
+    assert database.read_bytes() == before
+
+
+def test_hard_link_cannot_redirect_cache_writes(tmp_path):
+    other = tmp_path / "other.sqlite3"
+    with sqlite3.connect(other) as connection:
+        connection.execute("CREATE TABLE untouched (value TEXT)")
+    before = other.read_bytes()
+    root = tmp_path / "cache"
+    namespace = root / "json-v1"
+    namespace.mkdir(mode=0o700, parents=True)
+    os.link(other, namespace / "cache.sqlite3")
+    with pytest.raises(ValueError, match="hard links"):
+        make_cache(root)
+    assert other.read_bytes() == before
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX directory permissions")
+def test_shared_writable_paths_are_refused(tmp_path):
+    root = tmp_path / "cache"
+    root.mkdir(mode=0o777)
+    root.chmod(0o777)
+    with pytest.raises(ValueError, match="private"):
+        make_cache(root)
+
+
+def test_links_are_refused_after_initialization(tmp_path):
+    cache = make_cache(tmp_path / "cache")
+    other = tmp_path / "other.sqlite3"
+    with sqlite3.connect(other) as connection:
+        connection.execute("CREATE TABLE untouched (value TEXT)")
+    before = other.read_bytes()
+    cache.database.unlink()
+    cache.database.symlink_to(other)
+    with pytest.raises(ValueError, match="symlink"):
+        cache.set("key", "value")
+    assert other.read_bytes() == before
+
+
+def test_concurrent_eviction_respects_shared_budget(tmp_path):
+    def write(index):
+        cache = make_cache(tmp_path, 256)
+        for item in range(15):
+            cache.set(f"{index}-{item}", item)
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(write, range(4)))
+    cache = make_cache(tmp_path, 256)
+    with sqlite3.connect(cache.database) as connection:
+        assert connection.execute("SELECT SUM(cost) FROM entries").fetchone()[0] <= 256
+    assert 0 < len(cache) < 60
 
 
 def test_legacy_ignored_and_temp_directory(tmp_path):
