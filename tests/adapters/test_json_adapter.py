@@ -1321,6 +1321,72 @@ async def test_json_adapter_on_pydantic_model_async():
         assert result.answer.result == "Paris"
 
 
+@pytest.mark.parametrize("supports_schema", [True, False])
+def test_json_adapter_parse_failure_does_not_dispatch_again(supports_schema):
+    program = dspy.Predict("question -> answer")
+    lm = dspy.LM("openai/gpt-4o-mini", cache=False, num_retries=0)
+    with (
+        mock.patch("litelm.completion", return_value=ModelResponse(choices=[Choices(message=Message(content="{}"))])) as completion,
+        mock.patch("litelm.get_supported_openai_params", return_value=["response_format"]),
+        mock.patch("litelm.supports_response_schema", return_value=supports_schema),
+        dspy.context(lm=lm, adapter=dspy.JSONAdapter()),
+    ):
+        with pytest.raises(dspy.AdapterParseError):
+            program(question="What is the demo answer?")
+        assert completion.call_count == 1
+        response_format = completion.call_args.kwargs["response_format"]
+        if supports_schema:
+            assert issubclass(response_format, pydantic.BaseModel)
+        else:
+            assert response_format == {"type": "json_object"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("supports_schema", [True, False])
+async def test_json_adapter_parse_failure_does_not_dispatch_again_async(supports_schema):
+    program = dspy.Predict("question -> answer")
+    lm = dspy.LM("openai/gpt-4o-mini", cache=False, num_retries=0)
+    with (
+        mock.patch("litelm.acompletion", return_value=ModelResponse(choices=[Choices(message=Message(content="{}"))])) as completion,
+        mock.patch("litelm.get_supported_openai_params", return_value=["response_format"]),
+        mock.patch("litelm.supports_response_schema", return_value=supports_schema),
+        dspy.context(lm=lm, adapter=dspy.JSONAdapter()),
+    ):
+        with pytest.raises(dspy.AdapterParseError):
+            await program.acall(question="What is the demo answer?")
+        assert completion.call_count == 1
+        response_format = completion.call_args.kwargs["response_format"]
+        if supports_schema:
+            assert issubclass(response_format, pydantic.BaseModel)
+        else:
+            assert response_format == {"type": "json_object"}
+
+
+def test_json_adapter_schema_construction_failure_uses_json_before_dispatch():
+    program = dspy.Predict("question -> answer")
+    with (
+        mock.patch("dspy.adapters.json_adapter._get_structured_outputs_response_format", side_effect=ValueError("Unsupported local schema")),
+        mock.patch("litelm.completion", return_value=ModelResponse(choices=[Choices(message=Message(content='{"answer": "Demo"}'))])) as completion,
+        dspy.context(lm=dspy.LM("openai/gpt-4o-mini", cache=False, num_retries=0), adapter=dspy.JSONAdapter()),
+    ):
+        assert program(question="What is the demo answer?").answer == "Demo"
+        assert completion.call_count == 1
+        assert completion.call_args.kwargs["response_format"] == {"type": "json_object"}
+
+
+@pytest.mark.asyncio
+async def test_json_adapter_schema_construction_failure_uses_json_before_dispatch_async():
+    program = dspy.Predict("question -> answer")
+    with (
+        mock.patch("dspy.adapters.json_adapter._get_structured_outputs_response_format", side_effect=ValueError("Unsupported local schema")),
+        mock.patch("litelm.acompletion", return_value=ModelResponse(choices=[Choices(message=Message(content='{"answer": "Demo"}'))])) as completion,
+        dspy.context(lm=dspy.LM("openai/gpt-4o-mini", cache=False, num_retries=0), adapter=dspy.JSONAdapter()),
+    ):
+        assert (await program.acall(question="What is the demo answer?")).answer == "Demo"
+        assert completion.call_count == 1
+        assert completion.call_args.kwargs["response_format"] == {"type": "json_object"}
+
+
 def test_json_adapter_does_not_fallback_to_json_mode_on_structured_output_lm_error():
     class TestSignature(dspy.Signature):
         question: str = dspy.InputField()
