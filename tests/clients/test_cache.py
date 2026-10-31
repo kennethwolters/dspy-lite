@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pydantic
 import pytest
 from cachetools import LRUCache
-from diskcache import FanoutCache
+from dspy.clients.sqlite_cache import SqliteCache
 
 import dspy
 from dspy.clients.cache import Cache
@@ -86,7 +86,7 @@ def test_initialization(tmp_path):
         disk_size_limit_bytes=1024,
         memory_max_entries=0,
     )
-    assert isinstance(disk_cache.disk_cache, FanoutCache)
+    assert isinstance(disk_cache.disk_cache, SqliteCache)
     assert disk_cache.memory_cache == {}
 
     # Test disabled cache
@@ -405,29 +405,27 @@ def test_cache_init_with_disk_disabled_and_none_dir():
 # -- restrict_pickle tests --
 
 
+def test_disk_cache_refuses_pickle_opt_out(tmp_path):
+    with pytest.raises(ValueError, match="no longer supports pickle"):
+        Cache(enable_disk_cache=True, enable_memory_cache=False, disk_cache_dir=tmp_path, restrict_pickle=False)
+
+
 def test_default_disk_cache_rejects_malicious_pickle(tmp_path):
     cache_dir = tmp_path / "cache"
     marker = tmp_path / "pickle-executed"
     request = {"model": "test", "prompt": "malicious-entry"}
 
-    with pytest.warns(RuntimeWarning, match="arbitrary code"):
-        writer = Cache(
-            enable_disk_cache=True,
-            enable_memory_cache=False,
-            disk_cache_dir=cache_dir,
-            restrict_pickle=False,
-        )
-    writer.put(request, MaliciousCacheValue(marker))
-    writer.disk_cache.close()
+    import pickle
+    import sqlite3
 
-    default_reader = Cache(
-        enable_disk_cache=True,
-        enable_memory_cache=False,
-        disk_cache_dir=cache_dir,
-    )
-
+    default_reader = Cache(enable_disk_cache=True, enable_memory_cache=False, disk_cache_dir=cache_dir)
+    default_reader.put(request, {"value": "safe"})
+    payload = pickle.dumps(MaliciousCacheValue(marker))
+    with sqlite3.connect(default_reader.disk_cache.database) as connection:
+        connection.execute("UPDATE entries SET value = ? WHERE key = ?", (payload, default_reader.cache_key(request)))
     assert default_reader.get(request) is None
     assert not marker.exists()
+    assert default_reader.cache_key(request) not in default_reader.disk_cache
 
 
 def test_model_response_roundtrip_in_restricted_mode(restricted_cache):
@@ -493,7 +491,7 @@ def test_configure_cache_registers_safe_types(tmp_path):
 
 
 def test_corrupt_disk_entries_return_none(tmp_path):
-    """Real pickle corruption in a cache entry must return None, not raise."""
+    """Corrupt persisted bytes must become a miss, never an application error."""
     import sqlite3
 
     cache = Cache(
@@ -506,23 +504,14 @@ def test_corrupt_disk_entries_return_none(tmp_path):
     cache.put(request, {"value": "good"})
     key = cache.cache_key(request)
 
-    # Corrupt the pickle blob in the SQLite database
-    for shard_id in range(16):
-        db_path = os.path.join(str(tmp_path), f"{shard_id:03d}", "cache.db")
-        if not os.path.exists(db_path):
-            continue
-        conn = sqlite3.connect(db_path)
-        row = conn.execute("SELECT rowid, value FROM Cache WHERE key = ?", (key,)).fetchone()
-        if row:
-            conn.execute("UPDATE Cache SET value = X'DEADBEEF' WHERE rowid = ?", (row[0],))
-            conn.commit()
-        conn.close()
+    with sqlite3.connect(cache.disk_cache.database) as connection:
+        connection.execute("UPDATE entries SET value = X'DEADBEEF' WHERE key = ?", (key,))
 
     assert cache.get(request) is None
 
 
-def test_restricted_and_unrestricted_share_wire_format(tmp_path):
-    """Both modes use standard pickle, so entries written by one can be read by the other."""
+def test_json_persistence_across_instances(tmp_path):
+    """A new cache instance reads a value written by the previous one."""
     shared_dir = tmp_path / "shared"
     request = {"model": "test", "prompt": "shared"}
 
@@ -554,7 +543,7 @@ def test_unlisted_type_rejected_on_read(restricted_cache):
     # Memory cache still works
     assert restricted_cache.get(request) == _UnlistedDataclass(value=1)
 
-    # After clearing memory, restricted unpickler rejects the unlisted type
+    # The unregistered value was never written to the persistent store.
     restricted_cache.reset_memory_cache()
     assert restricted_cache.get(request) is None
 

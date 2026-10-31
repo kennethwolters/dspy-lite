@@ -42,10 +42,8 @@ class SqliteCache:
         try:
             connection = sqlite3.connect(self.database, timeout=10)
             yield connection
-        except sqlite3.DatabaseError as exc:
-            if getattr(exc, "sqlite_errorcode", 0) & 0xff in (sqlite3.SQLITE_CORRUPT, sqlite3.SQLITE_NOTADB):
-                raise DeserializationError("SQLite cache database error") from None
-            raise
+        except sqlite3.DatabaseError:
+            raise DeserializationError("SQLite cache database error") from None
         finally:
             if connection is not None:
                 connection.close()

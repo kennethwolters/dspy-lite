@@ -1,86 +1,146 @@
-"""Restricted pickle deserialization for disk cache.
+"""Versioned JSON cache payloads with exact, non-executable type registration."""
 
-Provides a RestrictedDisk subclass that overrides diskcache's fetch to use
-a restricted unpickler.
+import base64
+import dataclasses
+import importlib
+import math
 
-Trust model:
-- litelm._types and openai.types.* are trusted by module prefix (pydantic
-  data models only, forward-compatible with library upgrades)
-- numpy reconstruction helpers are trusted by exact (module, name) pairs
-- user safe_types are trusted by exact (module, qualname) pairs
-"""
+import orjson
+import pydantic
 
-import io
-import os.path
-import pickle
-from typing import Any
+from dspy.utils.lazy_import import require
 
-from diskcache import Disk
-from diskcache.core import MODE_PICKLE
+np = require("numpy")
 
-_TRUSTED_MODULE_PREFIXES = (
-    "litelm._types",
-    "openai.types.",
-)
-
-_NUMPY_ALLOWED: frozenset[tuple[str, str]] = frozenset({
-    ("numpy", "dtype"),
-    ("numpy", "ndarray"),
-    ("numpy._core.numeric", "_frombuffer"),
-    ("numpy.core.numeric", "_frombuffer"),
-    ("numpy.core.multiarray", "_reconstruct"),
-    ("numpy._core.multiarray", "_reconstruct"),
-    ("_codecs", "encode"),
-})
+# Only these fixed SDK imports may be selected by an untrusted cache entry.
+_PROVIDER_TYPES = {
+    "litelm-model": ("litelm", "ModelResponse"),
+    "litelm-embedding": ("litelm._embedding", "EmbeddingResponse"),
+    "litelm-text": ("litelm._text_completion", "TextCompletionResponse"),
+    "openai-completion": ("openai.types.completion", "Completion"),
+    "openai-chat": ("openai.types.chat", "ChatCompletion"),
+    "openai-response": ("openai.types.responses", "Response"),
+    "openai-embedding": ("openai.types", "CreateEmbeddingResponse"),
+}
 
 
 class DeserializationError(Exception):
-    """Raised when a cached value cannot be deserialized."""
+    """A cache entry is incompatible or corrupt and must be treated as a miss."""
 
 
-class _RestrictedUnpickler(pickle.Unpickler):
-    _allowed: frozenset[tuple[str, str]] = frozenset()
-
-    def find_class(self, module: str, name: str) -> type:
-        if any(module.startswith(p) for p in _TRUSTED_MODULE_PREFIXES):
-            return super().find_class(module, name)
-        if (module, name) in _NUMPY_ALLOWED or (module, name) in self._allowed:
-            return super().find_class(module, name)
-        raise DeserializationError(
-            f"Type {module}.{name} is not in the safe_types allowlist. "
-            f"Register it via dspy.configure_cache(safe_types=[...])."
-        )
+def _provider_type(tag):
+    module, name = _PROVIDER_TYPES[tag]
+    return getattr(importlib.import_module(module), name)
 
 
-def _restricted_load(f: Any, allowed: frozenset[tuple[str, str]]) -> Any:
-    unpickler = _RestrictedUnpickler(f)
-    unpickler._allowed = allowed
-    try:
-        return unpickler.load()
-    except DeserializationError:
-        raise
-    except Exception as e:
-        raise DeserializationError(f"Corrupt cache entry: {e}") from e
+class JsonCodec:
+    def __init__(self, safe_types=None):
+        self.safe_types = {}
+        for cls in safe_types or []:
+            if not isinstance(cls, type):
+                raise TypeError("safe_types entries must be types")
+            if not (dataclasses.is_dataclass(cls) or issubclass(cls, pydantic.BaseModel)):
+                raise TypeError("safe_types must be dataclasses or Pydantic models")
+            self.safe_types[f"{cls.__module__}.{cls.__qualname__}"] = cls
 
+    def dumps(self, value):
+        return orjson.dumps({"version": 1, "value": self._encode(value)})
 
-class _RestrictedDisk(Disk):
-    """Disk subclass that restricts pickle deserialization to an allowlist."""
+    def loads(self, data):
+        try:
+            document = orjson.loads(data)
+            if (set(document) != {"version", "value"} or type(document["version"]) is not int
+                    or document["version"] != 1):
+                raise ValueError
+            return self._decode(document["value"])
+        except Exception:
+            raise DeserializationError("Invalid or unsupported JSON cache entry") from None
 
-    _allowed: frozenset[tuple[str, str]]
+    def _encode(self, value):
+        if value is None or type(value) in (str, bool, int, float):
+            if isinstance(value, float) and not math.isfinite(value):
+                raise TypeError("Non-finite cache values are unsupported")
+            return ["value", value]
+        if isinstance(value, bytes):
+            return ["bytes", base64.b64encode(value).decode("ascii")]
+        if isinstance(value, (list, tuple)):
+            return ["tuple" if isinstance(value, tuple) else "list", [self._encode(item) for item in value]]
+        if isinstance(value, dict):
+            return ["dict", [[self._encode(key), self._encode(item)] for key, item in value.items()]]
+        cls = type(value)
+        name = f"{cls.__module__}.{cls.__qualname__}"
+        if self.safe_types.get(name) is cls:
+            if isinstance(value, pydantic.BaseModel):
+                attributes = value.model_dump(mode="json")
+            else:
+                attributes = {field.name: getattr(value, field.name) for field in dataclasses.fields(value)}
+            return ["registered", name, self._encode(attributes)]
+        if cls.__module__.startswith(("litelm.", "openai.types.")):
+            for tag, (module, _) in _PROVIDER_TYPES.items():
+                if not cls.__module__.startswith(module.split(".")[0] + ".") or cls is not _provider_type(tag):
+                    continue
+                if tag == "litelm-model":
+                    attributes = {"response": value.model_dump(), "hidden": value._hidden_params}
+                elif tag == "litelm-text":
+                    attributes = {"response": value._completion.model_dump(mode="json"), "hidden": value._hidden_params}
+                elif tag == "litelm-embedding":
+                    attributes = value._response.model_dump(mode="json")
+                else:
+                    attributes = value.model_dump(mode="json")
+                return ["provider", tag, self._encode(attributes)]
+        if cls.__module__.startswith("numpy"):
+            if isinstance(value, np.ndarray) and value.dtype.kind in "biufc":
+                return ["array", value.dtype.str, list(value.shape), base64.b64encode(value.tobytes()).decode("ascii")]
+        raise TypeError("Cache value requires an explicitly registered supported data type")
 
-    def fetch(self, mode, filename, value, read):
-        if mode == MODE_PICKLE:
-            if value is None:
-                with open(os.path.join(self._directory, filename), "rb") as f:
-                    return _restricted_load(f, self._allowed)
-            return _restricted_load(io.BytesIO(value), self._allowed)
-        return super().fetch(mode, filename, value, read)
-
-
-def restricted_disk(allowed: frozenset[tuple[str, str]]) -> type[_RestrictedDisk]:
-    """Return a Disk subclass bound to the given allowlist.
-
-    diskcache expects ``disk=`` to be a class it instantiates itself, so
-    we return a subclass with ``_allowed`` baked in as a class attribute.
-    """
-    return type("RestrictedDisk", (_RestrictedDisk,), {"_allowed": allowed})
+    def _decode(self, node):
+        if not isinstance(node, list) or not node:
+            raise ValueError
+        kind = node[0]
+        if kind == "value" and len(node) == 2:
+            value = node[1]
+            if value is None or type(value) in (str, bool, int, float):
+                return value
+            raise ValueError
+        if kind == "bytes" and len(node) == 2:
+            return base64.b64decode(node[1], validate=True)
+        if kind in ("list", "tuple") and len(node) == 2:
+            values = [self._decode(item) for item in node[1]]
+            return tuple(values) if kind == "tuple" else values
+        if kind == "dict" and len(node) == 2:
+            return {self._decode(key): self._decode(value) for key, value in node[1]}
+        if kind == "registered" and len(node) == 3:
+            cls = self.safe_types[node[1]]
+            attributes = self._decode(node[2])
+            if issubclass(cls, pydantic.BaseModel):
+                return cls.model_validate(attributes)
+            if not isinstance(attributes, dict) or set(attributes) != {field.name for field in dataclasses.fields(cls)}:
+                raise ValueError
+            value = object.__new__(cls)
+            for key, item in attributes.items():
+                object.__setattr__(value, key, item)
+            return value
+        if kind == "provider" and len(node) == 3:
+            cls = _provider_type(node[1])
+            attributes = self._decode(node[2])
+            if node[1] == "litelm-model":
+                value = cls(**attributes["response"])
+                value._hidden_params = attributes["hidden"]
+                return value
+            if node[1] == "litelm-text":
+                value = cls(_provider_type("openai-completion").model_validate(attributes["response"]))
+                value._hidden_params = attributes["hidden"]
+                return value
+            if node[1] == "litelm-embedding":
+                return cls(_provider_type("openai-embedding").model_validate(attributes))
+            return cls.model_validate(attributes)
+        if kind == "array" and len(node) == 4:
+            dtype = np.dtype(node[1])
+            shape = node[2]
+            data = base64.b64decode(node[3], validate=True)
+            if (dtype.kind not in "biufc" or not isinstance(shape, list)
+                    or not all(type(size) is int and size >= 0 for size in shape)
+                    or math.prod(shape) * dtype.itemsize != len(data)):
+                raise ValueError
+            return np.frombuffer(data, dtype=dtype).reshape(shape).copy()
+        raise ValueError

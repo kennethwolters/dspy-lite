@@ -3,7 +3,6 @@ import inspect
 import logging
 import os
 import threading
-import warnings
 from functools import wraps
 from hashlib import sha256
 from typing import Any
@@ -12,12 +11,9 @@ import cloudpickle
 import orjson
 import pydantic
 from cachetools import LRUCache
-from diskcache import FanoutCache
 
-from dspy.clients.disk_serialization import (
-    DeserializationError,
-    restricted_disk,
-)
+from dspy.clients.disk_serialization import JsonCodec
+from dspy.clients.sqlite_cache import SqliteCache
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +39,7 @@ class Cache:
 
     `Cache` provides 2 levels of caching (in the given order):
         1. In-memory cache - implemented with cachetools.LRUCache
-        2. On-disk cache - implemented with diskcache.FanoutCache
+        2. On-disk cache - versioned JSON values in SQLite
     """
 
     def __init__(
@@ -63,10 +59,8 @@ class Cache:
             disk_cache_dir: The directory where the disk cache is stored.
             disk_size_limit_bytes: The maximum size of the disk cache (in bytes).
             memory_max_entries: The maximum size of the in-memory cache (in number of items).
-            restrict_pickle: When True (default), restrict pickle deserialization to a known-safe
-                set of types. Setting this to False allows arbitrary code execution from cache entries
-                and must only be used with a fully trusted cache directory.
-            safe_types: Additional types to allow when restrict_pickle is True.
+            restrict_pickle: Compatibility parameter. False is rejected; disk entries never use pickle.
+            safe_types: Additional dataclasses or Pydantic models registered for JSON round trips.
         """
 
         self.enable_disk_cache = enable_disk_cache
@@ -82,25 +76,12 @@ class Cache:
             self.memory_cache = {}
         if self.enable_disk_cache:
             if not restrict_pickle:
-                warnings.warn(
-                    "Unrestricted disk-cache deserialization can execute arbitrary code. "
-                    "Only use restrict_pickle=False with a fully trusted cache directory.",
-                    RuntimeWarning,
-                    stacklevel=2,
-                )
-            fanout_kwargs = dict(
+                raise ValueError("Disk caching no longer supports pickle; remove restrict_pickle=False")
+            self.disk_cache = SqliteCache(
                 directory=self.disk_cache_dir,
-                shards=16,
-                timeout=10,
                 size_limit=disk_size_limit_bytes,
+                codec=JsonCodec(safe_types),
             )
-            if restrict_pickle:
-                for t in safe_types or []:
-                    if not isinstance(t, type):
-                        raise TypeError(f"safe_types entries must be types, got {t!r}")
-                allowed = frozenset((cls.__module__, cls.__qualname__) for cls in (safe_types or []))
-                fanout_kwargs["disk"] = restricted_disk(allowed)
-            self.disk_cache = FanoutCache(**fanout_kwargs)
         else:
             self.disk_cache = {}
 
@@ -128,7 +109,7 @@ class Cache:
         try:
             key = self.cache_key(request, ignored_args_for_cache_key)
         except Exception:
-            logger.debug("Failed to generate cache key for request: %s", request)
+            logger.debug("Failed to generate cache key")
             return None
 
         if self.enable_memory_cache:
@@ -140,9 +121,12 @@ class Cache:
         if self.enable_disk_cache:
             try:
                 response = self.disk_cache.get(key)
-            except DeserializationError:
-                logger.debug("Failed to deserialize disk cache entry %s", key)
-                self.disk_cache.delete(key)
+            except Exception:
+                logger.debug("Failed to read disk cache entry")
+                try:
+                    self.disk_cache.delete(key)
+                except Exception:
+                    logger.debug("Failed to remove unusable disk cache entry")
                 return None
 
             if response is None:
@@ -182,7 +166,7 @@ class Cache:
         try:
             key = self.cache_key(request, ignored_args_for_cache_key)
         except Exception:
-            logger.debug("Failed to generate cache key for request: %s", request)
+            logger.debug("Failed to generate cache key")
             return
 
         if enable_memory_cache:
@@ -193,7 +177,7 @@ class Cache:
             try:
                 self.disk_cache.set(key, value)
             except Exception as e:
-                logger.debug("Failed to put value in disk cache: %s, %s", value, e)
+                logger.debug("Failed to write disk cache entry: %s", type(e).__name__)
 
     def reset_memory_cache(self) -> None:
         if not self.enable_memory_cache:

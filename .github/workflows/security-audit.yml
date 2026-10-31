@@ -26,7 +26,7 @@ jobs:
             --format json \
             --output core-audit.json \
             --progress-spinner off || test -s core-audit.json
-          jq -e '[.dependencies[].vulns[] | select(.id != "PYSEC-2026-2447")] | length == 0' core-audit.json
+          jq -e '[.dependencies[].vulns[]] | length == 0' core-audit.json
       - name: Upload core audit
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -53,7 +53,7 @@ jobs:
             --format json \
             --output optional-audit.json \
             --progress-spinner off || test -s optional-audit.json
-          jq -e '[.dependencies[].vulns[] | select(.id != "PYSEC-2026-2447")] | length == 0' optional-audit.json
+          jq -e '[.dependencies[].vulns[]] | length == 0' optional-audit.json
       - name: Upload optional audit
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
