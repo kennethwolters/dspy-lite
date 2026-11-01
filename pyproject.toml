@@ -63,7 +63,7 @@ dev = [
     "ruff==0.16.7",
     "pre-commit==4.6.2",
     "pillow==12.3.0",
-    "datamodel_code_generator==0.79.0",
+    "datamodel_code_generator==0.81.0",
     "build==1.6.0",
     "pip-audit==2.10.1",
     "litelm==0.6.0",

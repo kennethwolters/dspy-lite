@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.10, <3.15"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -751,7 +751,7 @@ wheels = [
 
 [[package]]
 name = "datamodel-code-generator"
-version = "0.79.0"
+version = "0.81.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "argcomplete" },
@@ -763,10 +763,11 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
     { name = "tomli", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d8/98/4b35f12e551d078e4297422e98cbc679f4792475bcf7da2e008308695d97/datamodel_code_generator-0.79.0.tar.gz", hash = "sha256:d1e4297c946cccb9c2f7f662167b5876d5554ce3884ac145042256af08f23924", size = 2661584, upload-time = "2026-09-10T17:56:30.318Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/41/a1/87deb406ca27b0ae25cda946940208dfe2a2953b7fef20f8a968746e6b36/datamodel_code_generator-0.81.0.tar.gz", hash = "sha256:3b4d1639cc7430f7e34fddc3827fb5d3eb0a4f5394750890c46ba2a9d56e3ee2", size = 2912162, upload-time = "2026-09-14T00:05:20.43Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/80/62/c4ab81535f7fd6d46040908c535248ef96fa53d90c7379913256ddcd3f6c/datamodel_code_generator-0.79.0-py3-none-any.whl", hash = "sha256:0aa827080096844a56135eb990e69d622e79f74bad2e5f006ce797bd74477d1f", size = 695513, upload-time = "2026-09-10T17:56:27.845Z" },
+    { url = "https://files.pythonhosted.org/packages/84/30/acea9e8d4c5e7819c10b25581accfa805e5368ec564fc210c8f4c4ffd666/datamodel_code_generator-0.81.0-py3-none-any.whl", hash = "sha256:82ff0c295685065a83c530ce42ec03fc75b7ca01e72083eb8232d68f7637013a", size = 721675, upload-time = "2026-09-14T00:05:18.451Z" },
 ]
 
 [[package]]
@@ -940,7 +941,7 @@ requires-dist = [
     { name = "build", marker = "extra == 'dev'", specifier = "==1.6.0" },
     { name = "cachetools", specifier = "==7.1.8" },
     { name = "cloudpickle", specifier = "==3.1.2" },
-    { name = "datamodel-code-generator", marker = "extra == 'dev'", specifier = "==0.79.0" },
+    { name = "datamodel-code-generator", marker = "extra == 'dev'", specifier = "==0.81.0" },
     { name = "datasets", marker = "extra == 'test-extras'", specifier = "==5.0.1" },
     { name = "deno", marker = "extra == 'deno'", specifier = "==2.9.6" },
     { name = "dspy-lite", extras = ["anthropic", "bedrock", "cloudflare", "deno", "embeddings"], marker = "extra == 'all'" },
