@@ -363,6 +363,8 @@ async def test_predictor_failure_logs_metadata_without_exception_payload(mode, e
     monkeypatch.setattr(react.react, "aforward", aselect)
     monkeypatch.setattr(react.extract, "forward", extract)
     monkeypatch.setattr(react.extract, "aforward", aextract)
+    logger = logging.getLogger("dspy.predict.react")
+    monkeypatch.setattr(logger, "handlers", [*logger.handlers, caplog.handler])
     with caplog.at_level(logging.WARNING, logger="dspy.predict.react"):
         result = await react.acall(question="Example") if mode == "async" else react(question="Example")
 
