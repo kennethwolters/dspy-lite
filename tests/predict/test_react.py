@@ -1,3 +1,4 @@
+import logging
 import re
 
 import pytest
@@ -337,6 +338,43 @@ async def test_context_window_exceeded_after_retries():
     assert len(async_extract_calls) == 1
     assert async_extract_calls[0]["input_text"] == "test input"
     assert "trajectory" in async_extract_calls[0]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mode", ["sync", "async"])
+@pytest.mark.parametrize("error_type", [ValueError, ContextWindowExceededError])
+async def test_predictor_failure_logs_metadata_without_exception_payload(mode, error_type, monkeypatch, caplog):
+    react = dspy.ReAct("question -> answer", tools=[], max_iters=1)
+    canary = "opaque-exception-payload-canary"
+
+    def select(**kwargs):
+        raise error_type(message=canary) if error_type is ContextWindowExceededError else error_type(canary)
+
+    async def aselect(**kwargs):
+        return select(**kwargs)
+
+    def extract(**kwargs):
+        return dspy.Prediction(answer="Fallback output")
+
+    async def aextract(**kwargs):
+        return extract(**kwargs)
+
+    monkeypatch.setattr(react.react, "forward", select)
+    monkeypatch.setattr(react.react, "aforward", aselect)
+    monkeypatch.setattr(react.extract, "forward", extract)
+    monkeypatch.setattr(react.extract, "aforward", aextract)
+    logger = logging.getLogger("dspy.predict.react")
+    monkeypatch.setattr(logger, "handlers", [*logger.handlers, caplog.handler])
+    with caplog.at_level(logging.WARNING, logger="dspy.predict.react"):
+        result = await react.acall(question="Example") if mode == "async" else react(question="Example")
+
+    assert result.answer == "Fallback output"
+    records = [record for record in caplog.records if record.name == "dspy.predict.react"]
+    assert records
+    assert canary not in caplog.text
+    assert all(canary not in str(vars(record)) for record in records)
+    assert all(record.exc_info is None and record.exc_text is None and record.stack_info is None for record in records)
+    assert any(getattr(record, "error_type", None) == error_type.__name__ for record in records)
 
 
 def test_error_retry():
