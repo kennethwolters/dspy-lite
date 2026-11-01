@@ -450,9 +450,9 @@ class LM(BaseLM):
             reconstruct this `LM`. The state excludes API keys.
         """
         state = super().dump_state()
+        state.pop("http_client", None)
         if self.supports_decision_requests:
             state.pop("azure_ad_token_provider", None)
-            state.pop("http_client", None)
         state.update(
             {
                 "finetuning_model": self.finetuning_model,
