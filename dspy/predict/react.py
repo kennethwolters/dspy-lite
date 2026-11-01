@@ -99,10 +99,10 @@ class ReAct(Module):
             try:
                 pred = self._call_with_potential_trajectory_truncation(self.react, trajectory, **input_args)
             except ContextWindowExceededError as err:
-                logger.warning(f"Ending the trajectory: {format_error_for_lm(err, traceback_frames=5)}")
+                logger.warning("Ending the trajectory: context window exhausted", extra={"error_type": type(err).__name__})
                 break
             except ValueError as err:
-                logger.warning(f"Ending the trajectory: Agent failed to select a valid tool: {format_error_for_lm(err, traceback_frames=5)}")
+                logger.warning("Ending the trajectory: invalid tool selection", extra={"error_type": type(err).__name__})
                 break
 
             trajectory[f"thought_{idx}"] = pred.next_thought
@@ -127,10 +127,10 @@ class ReAct(Module):
             try:
                 pred = await self._async_call_with_potential_trajectory_truncation(self.react, trajectory, **input_args)
             except ContextWindowExceededError as err:
-                logger.warning(f"Ending the trajectory: {format_error_for_lm(err, traceback_frames=5)}")
+                logger.warning("Ending the trajectory: context window exhausted", extra={"error_type": type(err).__name__})
                 break
             except ValueError as err:
-                logger.warning(f"Ending the trajectory: Agent failed to select a valid tool: {format_error_for_lm(err, traceback_frames=5)}")
+                logger.warning("Ending the trajectory: invalid tool selection", extra={"error_type": type(err).__name__})
                 break
 
             trajectory[f"thought_{idx}"] = pred.next_thought
