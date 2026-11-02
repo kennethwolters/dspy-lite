@@ -2,6 +2,7 @@
 import json
 
 import httpx2 as httpx
+import litelm
 import pytest
 
 import dspy
@@ -106,3 +107,27 @@ def test_borrowed_transport_is_not_serialized(provider):
         json.dumps(state)
         restored = dspy.LM.load_state(state)
         assert "http_client" not in restored.kwargs
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", [200, 503])
+async def test_litelm_callback_suppression_survives_dspy_execution(monkeypatch, status):
+    seen, observed = [], []
+    callback = lambda *args: observed.append(args)
+    monkeypatch.setattr(litelm, "success_callback", [callback])
+    monkeypatch.setattr(litelm, "failure_callback", [callback])
+
+    async def handle(request):
+        seen.append(request)
+        return response(request, status)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handle), trust_env=False) as client:
+        lm = make_lm("azure", client)
+        with litelm.suppress_callbacks(), dspy.context(disable_history=True, callbacks=[]):
+            if status == 200:
+                assert await lm.acall("Toy question") == ['{"answer":"Vier"}']
+            else:
+                with pytest.raises(dspy.LMError):
+                    await lm.acall("Toy question")
+        assert not client.is_closed and not lm.history
+    assert len(seen) == 1 and observed == []
