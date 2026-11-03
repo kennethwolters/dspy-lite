@@ -4,12 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dspy-lite"
-version = "3.3.1.post11"
+version = "3.3.1.post12"
 description = "DSPy with litellm replaced by litelm and numpy made optional"
 readme = "README.md"
 authors = [{ name = "Kenneth Wolters" }]
 license = {file = "LICENSE"}
-requires-python = ">=3.10,<3.15"
+requires-python = ">=3.11,<3.15"
 keywords = ["llm", "dspy", "ai", "prompt-optimization", "language-models"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -17,7 +17,6 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -31,7 +30,7 @@ dependencies = [
     "tqdm==4.70.1",
     "requests==2.34.2",
     "pydantic==2.14.2",
-    "litelm==0.6.3",
+    "litelm==0.7.0",
     "json-repair==0.64.2",
     "anyio==4.15.1",
     "cachetools==7.2.7",
@@ -41,16 +40,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-anthropic = ["litelm[anthropic]==0.6.3"]
+anthropic = ["litelm[anthropic]==0.7.0"]
 weaviate = ["weaviate-client==4.24.1"]
-mcp = ["mcp==2.3.0; python_version >= '3.10'"]
+mcp = ["mcp==2.3.0"]
 langchain = ["langchain_core==1.7.3"]
 optuna = ["optuna==5.0.0"]
-bedrock = ["litelm[bedrock]==0.6.3"]
-cloudflare = ["litelm[cloudflare]==0.6.3"]
+bedrock = ["litelm[bedrock]==0.7.0"]
+cloudflare = ["litelm[cloudflare]==0.7.0"]
 deno = ["deno==2.9.8"]
 embeddings = [
-    "numpy==2.2.6; python_version == '3.10'",
     "numpy==2.4.6; python_version == '3.11'",
     "numpy==2.5.3; python_version >= '3.12' and python_version < '3.15'",
 ]
@@ -62,16 +60,16 @@ dev = [
     "pytest-asyncio==1.4.1",
     "ruff==0.17.3",
     "pre-commit==4.6.2",
-    "pillow==12.3.0",
+    "pillow==13.0.0",
+    "filelock==4.2.1",  # Security floor for transitive development dependencies
     "datamodel_code_generator==0.87.0",
     "build==1.6.1",
     "pip-audit==2.10.1",
-    "litelm==0.6.3",
+    "litelm==0.7.0",
 ]
 test_extras = [
-    "mcp==2.3.0; python_version >= '3.10'",
+    "mcp==2.3.0",
     "datasets==5.1.0",
-    "pandas==2.3.3; python_version == '3.10'",
     "pandas==3.0.5; python_version >= '3.11' and python_version < '3.15'",
     "optuna==5.0.0",
     "langchain_core==1.7.3",
@@ -94,7 +92,7 @@ filterwarnings = []
 
 [tool.uv.sources]
 # Use the maintainer-owned git source for local resolution.
-litelm = { git = "https://github.com/kennethwolters/litelm.git", tag = "v0.6.3" }
+litelm = { git = "https://github.com/kennethwolters/litelm.git", tag = "v0.7.0" }
 
 [tool.ruff]
 include = ["dspy/**/*.py", "scripts/**/*.py", "tests/**/*.py"]

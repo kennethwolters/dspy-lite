@@ -558,6 +558,35 @@ def test_pil_image_with_deprecated_download_still_encodes():
     assert image.url.startswith("data:image/")
 
 
+@pytest.mark.parametrize("source_kind", ["png", "tiff", "tiff-bytes"])
+def test_integer_image_encoding_preserves_format_and_values(source_kind):
+    pixels = [-2147483648, -1, 0, 1, 255, 256, 65535, 65536, 2147483647]
+    original = PILImage.new("I", (len(pixels), 1))
+    original.putdata(pixels)
+    source = original
+    if source_kind != "png":
+        buffered = BytesIO()
+        original.save(buffered, format="TIFF")
+        source = buffered.getvalue() if source_kind == "tiff-bytes" else PILImage.open(BytesIO(buffered.getvalue()))
+
+    encoded = dspy.Image(source).url
+    expected_format = "PNG" if source_kind == "png" else "TIFF"
+    expected_pixels = [0, 0, 0, 1, 255, 256, 65535, 65535, 65535] if source_kind == "png" else pixels
+    assert encoded.startswith(f"data:image/{expected_format.lower()};base64,")
+    with PILImage.open(BytesIO(base64.b64decode(encoded.split(",", 1)[1]))) as decoded:
+        assert decoded.format == expected_format
+        assert [decoded.getpixel((x, 0)) for x in range(len(pixels))] == expected_pixels
+
+    assert original.mode == "I"
+    assert original.format is None
+    assert [original.getpixel((x, 0)) for x in range(len(pixels))] == pixels
+    if isinstance(source, PILImage.Image) and source is not original:
+        assert source.mode == "I"
+        assert source.format == "TIFF"
+        assert [source.getpixel((x, 0)) for x in range(len(pixels))] == pixels
+        source.close()
+
+
 def test_from_path_missing_file():
     with pytest.raises(ValueError, match="File not found"):
         dspy.Image.from_path("/nonexistent/image.png")

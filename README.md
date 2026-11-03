@@ -16,7 +16,7 @@ DSPy with [litellm](https://github.com/BerriAI/litellm) replaced by [litelm](htt
 pip install dspy-lite
 ```
 
-Supported Python versions: 3.10 through 3.14.
+Supported Python versions: 3.11 through 3.14. Starting with 3.3.1.post12, Python 3.10 is no longer supported so development dependencies can use patched Pillow 13 and filelock 4.2.1 without vulnerable fallback pins. Neither dependency is added to the core runtime; image encoding still requires Pillow to be installed separately.
 
 With provider extras:
 
