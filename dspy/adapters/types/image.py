@@ -266,6 +266,9 @@ def _encode_pil_image(image: "PILImage") -> str:
     """Encode a PIL Image object to a base64 data URI."""
     buffered = io.BytesIO()
     file_format = image.format or "PNG"
+    if file_format.upper() == "PNG" and image.mode == "I":
+        # Preserve the 16-bit clipping that Pillow applied before version 13.
+        image = image.convert("I;16")
     image.save(buffered, format=file_format)
 
     # Get the correct MIME type using the image format
