@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dspy-lite"
-version = "3.3.1.post10"
+version = "3.3.1.post11"
 description = "DSPy with litellm replaced by litelm and numpy made optional"
 readme = "README.md"
 authors = [{ name = "Kenneth Wolters" }]
@@ -25,13 +25,13 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    "openai==2.54.0",
+    "openai==3.13.0",
     "regex==2026.9.29",
     "orjson==3.13.0",
     "tqdm==4.70.1",
     "requests==2.34.2",
     "pydantic==2.14.2",
-    "litelm==0.6.2",
+    "litelm==0.6.3",
     "json-repair==0.64.2",
     "anyio==4.15.1",
     "cachetools==7.2.7",
@@ -41,13 +41,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-anthropic = ["litelm[anthropic]==0.6.2"]
+anthropic = ["litelm[anthropic]==0.6.3"]
 weaviate = ["weaviate-client==4.24.1"]
 mcp = ["mcp==2.3.0; python_version >= '3.10'"]
 langchain = ["langchain_core==1.7.3"]
 optuna = ["optuna==5.0.0"]
-bedrock = ["litelm[bedrock]==0.6.2"]
-cloudflare = ["litelm[cloudflare]==0.6.2"]
+bedrock = ["litelm[bedrock]==0.6.3"]
+cloudflare = ["litelm[cloudflare]==0.6.3"]
 deno = ["deno==2.9.8"]
 embeddings = [
     "numpy==2.2.6; python_version == '3.10'",
@@ -66,7 +66,7 @@ dev = [
     "datamodel_code_generator==0.87.0",
     "build==1.6.1",
     "pip-audit==2.10.1",
-    "litelm==0.6.2",
+    "litelm==0.6.3",
 ]
 test_extras = [
     "mcp==2.3.0; python_version >= '3.10'",
@@ -94,7 +94,7 @@ filterwarnings = []
 
 [tool.uv.sources]
 # Use the maintainer-owned git source for local resolution.
-litelm = { git = "https://github.com/kennethwolters/litelm.git", tag = "v0.6.2" }
+litelm = { git = "https://github.com/kennethwolters/litelm.git", tag = "v0.6.3" }
 
 [tool.ruff]
 include = ["dspy/**/*.py", "scripts/**/*.py", "tests/**/*.py"]
