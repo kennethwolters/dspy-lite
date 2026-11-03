@@ -16,6 +16,67 @@ from dspy.streaming import StatusMessage, StatusMessageProvider, StreamResponse,
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("value", [StatusMessage("Working"), "custom chunk", dspy.Prediction(answer="done")])
+async def test_streamify_early_close_cancels_producer(value):
+    stopped = asyncio.Event()
+
+    async def program():
+        try:
+            await dspy.settings.send_stream.send(value)
+            await asyncio.Event().wait()
+        finally:
+            stopped.set()
+
+    original_stream = dspy.settings.send_stream
+    output = dspy.streamify(program)()
+    assert await anext(output) == value
+    await output.aclose()
+    assert stopped.is_set()
+    assert dspy.settings.send_stream is original_stream
+
+
+@pytest.mark.anyio
+async def test_streamify_early_close_preserves_producer_cleanup_failure():
+    async def program():
+        try:
+            await dspy.settings.send_stream.send(StatusMessage("Working"))
+            await asyncio.Event().wait()
+        finally:
+            raise RuntimeError("cleanup failed")
+
+    output = dspy.streamify(program)()
+    await anext(output)
+    with pytest.raises(ExceptionGroup) as caught:
+        await output.aclose()
+    assert len(caught.value.exceptions) == 1
+    assert isinstance(caught.value.exceptions[0], RuntimeError)
+    assert str(caught.value.exceptions[0]) == "cleanup failed"
+
+
+@pytest.mark.anyio
+async def test_streamify_consumer_cancellation_stops_producer():
+    entered, stopped = asyncio.Event(), asyncio.Event()
+
+    async def program():
+        entered.set()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            stopped.set()
+
+    async def consume():
+        async for _ in dspy.streamify(program)():
+            pytest.fail("unexpected output")
+
+    task = asyncio.create_task(consume())
+    await entered.wait()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert stopped.is_set()
+
+
+@pytest.mark.anyio
 async def test_streamify_yields_expected_response_chunks(litelm_test_server):
     api_base, _ = litelm_test_server
     lm = dspy.LM(
