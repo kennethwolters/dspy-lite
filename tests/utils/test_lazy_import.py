@@ -1,3 +1,4 @@
+import inspect
 import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -81,6 +82,32 @@ def test_require_assignment_updates_materialized_module(tmp_path, monkeypatch):
 def test_require_returns_stub_when_missing():
     stub = require("definitely_not_a_real_module_xyz", feature="dspy.X")
     assert isinstance(stub, _MissingModule)
+
+
+def test_require_missing_dependency_preserves_original_call_site():
+    def create_stub():
+        expected_line = inspect.currentframe().f_lineno + 1
+        stub = require("missing_optional_dependency_for_caller_test", feature="dspy.Test")
+        return stub, expected_line
+
+    stub, expected_line = create_stub()
+    with pytest.raises(ImportError) as exc_info:
+        _ = stub.something
+
+    message = str(exc_info.value)
+    assert f'File {__file__}, line {expected_line}, in create_stub' in message
+    assert '----> stub = require("missing_optional_dependency_for_caller_test", feature="dspy.Test")' in message
+    assert "pip install" in message
+
+
+def test_require_missing_dependency_does_not_walk_ancestor_frames(monkeypatch):
+    def reject_stack_walk(*args, **kwargs):
+        raise AssertionError("Missing dependency diagnostics must inspect only the caller")
+
+    monkeypatch.setattr(inspect, "getouterframes", reject_stack_walk)
+    stub = require("missing_optional_dependency_for_stack_test")
+    with pytest.raises(ImportError, match="missing_optional_dependency_for_stack_test"):
+        _ = stub.something
 
 
 def test_require_stub_raises_on_access_with_install_hint():
